@@ -1,5 +1,6 @@
 docker-build:
   # Use the official docker image.
+  tags: [ docker ] 
   image: docker:cli
   stage: build
   services:
