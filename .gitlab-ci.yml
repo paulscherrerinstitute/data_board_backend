@@ -1,10 +1,9 @@
-docker-build:
-  # Use the official docker image.
-  tags: [ docker ] 
-  image: docker:cli
-  stage: build
-  services:
-    - docker:dind
+include:
+  - project: 'controls-ci/templates'
+    file: '/docker/build_image_template.yml'
+
+deploy:
+  extends: .build_image_template
   variables:
     DOCKER_IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   before_script:
