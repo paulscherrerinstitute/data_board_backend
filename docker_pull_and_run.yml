@@ -1,22 +1,115 @@
----
-- name: Pull Docker image and run container
+- name: Pull Docker images and run containers for frontend, backend, and Redis
   hosts: localhost
   connection: local
-  become: true 
+  become: true
   tasks:
 
-    - name: Pull Docker image from registry
+    - name: Ensure BACKEND_IMAGE is set
+      fail:
+        msg: "Ansible variable for BACKEND_IMAGE must be set."
+      when: BACKEND_IMAGE is not defined
+
+    - name: Ensure FRONTEND_IMAGE is set
+      fail:
+        msg: "Ansible variable for FRONTEND_IMAGE must be set."
+      when: FRONTEND_IMAGE is not defined
+
+    - name: Ensure REDIS_IMAGE is set
+      fail:
+        msg: "Ansible variable for REDIS_IMAGE must be set."
+      when: REDIS_IMAGE is not defined
+
+    - name: Ensure BACKEND_PORT is set
+      fail:
+        msg: "Ansible variable for BACKEND_PORT must be set."
+      when: BACKEND_PORT is not defined
+
+    - name: Ensure FRONTEND_PORT is set
+      fail:
+        msg: "Ansible variable for FRONTEND_PORT must be set."
+      when: FRONTEND_PORT is not defined
+
+    - name: Ensure REDIS_PORT is set
+      fail:
+        msg: "Ansible variable for REDIS_PORT must be set."
+      when: REDIS_PORT is not defined
+
+    - name: Create Docker network
+      docker_network:
+        name: data_board_network
+        driver: bridge
+
+    - name: Pull Docker image for Redis from registry
       docker_image:
-        name: "container.psi.ch/controls-ci/data_board_backend"
+        name: "{{ REDIS_IMAGE }}"
         tag: "latest"
         source: pull
 
-    - name: Run Docker container from the image
+    - name: Run Docker container for Redis
       docker_container:
-        name: data_board_backend
-        image: "container.psi.ch/controls-ci/data_board_backend:latest"
+        name: data_board_redis
+        image: "{{ REDIS_IMAGE }}:latest"
         state: started
         restart_policy: unless-stopped
         ports:
-          - "8080:8080"
+          - "{{ REDIS_PORT }}:6379"
         detach: true
+
+    - name: Add Redis container to Docker network
+      docker_network:
+        name: data_board_network
+        connected:
+          - data_board_redis
+        appends: yes
+
+    - name: Pull Docker image for backend from registry
+      docker_image:
+        name: "{{ BACKEND_IMAGE }}"
+        tag: "latest"
+        source: pull
+
+    - name: Run Docker container for backend
+      docker_container:
+        name: data_board_backend
+        image: "{{ BACKEND_IMAGE }}:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "{{ BACKEND_PORT }}:8080"
+        detach: true
+        env:
+          REDIS_HOST: "data_board_redis"
+          REDIS_PORT: "{{ REDIS_PORT }}"
+          FRONTEND_URL: "http://localhost:{{ FRONTEND_PORT }}"
+
+    - name: Add backend container to Docker network
+      docker_network:
+        name: data_board_network
+        connected:
+          - data_board_backend
+        appends: yes
+
+    - name: Pull Docker image for frontend from registry
+      docker_image:
+        name: "{{ FRONTEND_IMAGE }}"
+        tag: "latest"
+        source: pull
+
+    - name: Run Docker container for frontend
+      docker_container:
+        name: data_board_frontend
+        image: "{{ FRONTEND_IMAGE }}:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "{{ FRONTEND_PORT }}:8080"
+        detach: true
+        env:
+          REACT_APP_BACKEND_URL: "http://data_board_backend:{{ BACKEND_PORT }}"
+
+    - name: Add frontend container to Docker network
+      docker_network:
+        name: data_board_network
+        connected:
+          - data_board_frontend
+        appends: yes
