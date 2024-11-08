@@ -1,0 +1,22 @@
+---
+- name: Pull Docker image and run container
+  hosts: localhost
+  connection: local
+  become: true 
+  tasks:
+
+    - name: Pull Docker image from registry
+      docker_image:
+        name: "container.psi.ch/controls-ci/data_board_backend"
+        tag: "latest"
+        source: pull
+
+    - name: Run Docker container from the image
+      docker_container:
+        name: data_board_backend
+        image: "container.psi.ch/controls-ci/data_board_backend:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "8080:8080"
+        detach: true
