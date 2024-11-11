@@ -54,6 +54,7 @@
         ports:
           - "{{ REDIS_PORT }}:6379"
         detach: true
+        image_name_mismatch: recreate
 
     - name: Add Redis container to Docker network
       docker_network:
@@ -81,6 +82,7 @@
           REDIS_HOST: "data_board_redis"
           REDIS_PORT: "{{ REDIS_PORT }}"
           FRONTEND_URL: "http://localhost:{{ FRONTEND_PORT }}"
+        image_name_mismatch: recreate
 
     - name: Add backend container to Docker network
       docker_network:
@@ -106,6 +108,7 @@
         detach: true
         env:
           REACT_APP_BACKEND_URL: "http://data_board_backend:{{ BACKEND_PORT }}"
+        image_name_mismatch: recreate
 
     - name: Add frontend container to Docker network
       docker_network:
