@@ -4,35 +4,15 @@
   become: true
   tasks:
 
-    - name: Ensure BACKEND_IMAGE is set
-      fail:
-        msg: "Ansible variable for BACKEND_IMAGE must be set."
-      when: BACKEND_IMAGE is not defined
-
-    - name: Ensure FRONTEND_IMAGE is set
-      fail:
-        msg: "Ansible variable for FRONTEND_IMAGE must be set."
-      when: FRONTEND_IMAGE is not defined
-
-    - name: Ensure REDIS_IMAGE is set
-      fail:
-        msg: "Ansible variable for REDIS_IMAGE must be set."
-      when: REDIS_IMAGE is not defined
-
-    - name: Ensure BACKEND_PORT is set
-      fail:
-        msg: "Ansible variable for BACKEND_PORT must be set."
-      when: BACKEND_PORT is not defined
-
-    - name: Ensure FRONTEND_PORT is set
-      fail:
-        msg: "Ansible variable for FRONTEND_PORT must be set."
-      when: FRONTEND_PORT is not defined
-
-    - name: Ensure REDIS_PORT is set
-      fail:
-        msg: "Ansible variable for REDIS_PORT must be set."
-      when: REDIS_PORT is not defined
+    - name: Set default values if variables are not defined
+      set_fact:
+        BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('container.psi.ch/controls-ci/data_board_backend') }}"
+        FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('container.psi.ch/controls-ci/data_board_frontend') }}"
+        REDIS_IMAGE: "{{ REDIS_IMAGE | default('redis') }}"
+        BACKEND_PORT: "{{ BACKEND_PORT | default(8080) }}"
+        BACKEND_HOST: "{{ BACKEND_HOST | default('http://' + ansible_default_ipv4.address) }}"
+        FRONTEND_PORT: "{{ FRONTEND_PORT | default(80) }}"
+        REDIS_PORT: "{{ REDIS_PORT | default(6379) }}"
 
     - name: Create Docker network
       docker_network:
@@ -45,7 +25,7 @@
         tag: "latest"
         source: pull
 
-    - name: Run Docker container for Redis
+    - name: Run Docker container for Redis with custom config inline
       docker_container:
         name: data_board_redis
         image: "{{ REDIS_IMAGE }}:latest"
@@ -55,6 +35,7 @@
           - "{{ REDIS_PORT }}:6379"
         detach: true
         image_name_mismatch: recreate
+        command: ["redis-server", "--save", '""', "--appendonly", "no"]
 
     - name: Add Redis container to Docker network
       docker_network:
@@ -81,7 +62,6 @@
         env:
           REDIS_HOST: "data_board_redis"
           REDIS_PORT: "{{ REDIS_PORT }}"
-          FRONTEND_URL: "http://localhost:{{ FRONTEND_PORT }}"
         image_name_mismatch: recreate
 
     - name: Add backend container to Docker network
@@ -107,7 +87,7 @@
           - "{{ FRONTEND_PORT }}:8080"
         detach: true
         env:
-          REACT_APP_BACKEND_URL: "http://data_board_backend:{{ BACKEND_PORT }}"
+          DATA_BOARD_PUBLIC_BACKEND_URL: "{{ BACKEND_HOST }}:{{ BACKEND_PORT }}"
         image_name_mismatch: recreate
 
     - name: Add frontend container to Docker network
