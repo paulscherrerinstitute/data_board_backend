@@ -1,25 +1,45 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis import Redis
-import os
+from os import getenv
+from threading import Thread, Lock
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from shared_resources.datahub_synchronizer import data_aggregator, backend_synchronizer
+
+from routers import (
+    channels
+)
 
 app = FastAPI()
 
+app.include_router(channels.router, prefix='/channels')
+
 # Connect to Redis
-redis_host = os.getenv('REDIS_HOST', 'localhost')
-redis_port = os.getenv('REDIS_PORT', '6379')
+redis_host = getenv('REDIS_HOST', 'localhost')
+redis_port = getenv('REDIS_PORT', '6379')
 redis = Redis(host=redis_host, port=redis_port, db=0)
 
-# Get frontend URL for CORS
-frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-# Allow only requests from frontend and localhost
+# Allow requests from everywhere
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url, 'http://localhost'],
-    allow_credentials=True,
+    allow_origins=["*"],
+	allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def on_startup():
+    # Start the data aggregator in a separate thread
+    aggregator_thread = Thread(target=data_aggregator)
+    aggregator_thread.daemon = True
+    aggregator_thread.start()
+
+    # Start the backend synchronizer in a separate thread
+    backend_channel_thread = Thread(target=backend_synchronizer)
+    backend_channel_thread.daemon = True
+    backend_channel_thread.start()
 
 @app.get("/")
 def root():
