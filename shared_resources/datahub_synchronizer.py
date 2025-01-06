@@ -11,8 +11,8 @@ def search_channels(search_text = ".*", avoid_cached_result = False):
 
     if not avoid_cached_result:
         cached_channel_list = []
-        with shared.backend_channels_lock:
-            cached_channel_list = shared.backend_channels.copy()
+        with shared.available_backend_channels_lock:
+            cached_channel_list = shared.available_backend_channels.copy()
         for channel_tuple in cached_channel_list:
             channel = channel_tuple[1]
             if search_text.lower() in channel.lower():
@@ -37,8 +37,8 @@ def search_channels(search_text = ".*", avoid_cached_result = False):
 def data_aggregator():
     while True:
         # Create a separate list to use for thread safety with the main thread which adds new channels
-        with shared.channel_list_lock:
-            local_channel_list = shared.channel_list.copy()
+        with shared.active_channels_lock:
+            local_channel_list = shared.active_channels.copy()
 
         with ThreadPoolExecutor(max_workers=len(local_channel_list)) as executor:
             futures = [executor.submit(update_channel_data, channel) for channel in local_channel_list]
@@ -61,13 +61,13 @@ def data_aggregator():
 
         # If system memory is low, do a cleanup of unused channels
         if available_memory < 5000000000: # 5 GB
-            with shared.channel_list_lock:
-                for channel, last_accessed in shared.channel_list.items():
+            with shared.active_channels_lock:
+                for channel, last_accessed in shared.active_channels.items():
                     if last_accessed < time_thirty_minutes_ago:
                         to_remove_channels.append(channel)
 
                 for channel in to_remove_channels:
-                    del shared.channel_list[channel]
+                    del shared.active_channels[channel]
                     redis_key = f"curve_stream:{channel}"
                     if shared.redis_client.exists(redis_key):
                         shared.redis_client.delete(redis_key)
@@ -164,7 +164,13 @@ def cache_backend_channels():
     # This takes forever, up to a minute.
     backend_channels = search_channels(avoid_cached_result = True)
 
-    with shared.backend_channels_lock:
-        shared.backend_channels = [('TEST', 'random.1', None, 'float'), ('TEST', 'random.2', None, 'float')] + backend_channels
+    with shared.available_backend_channels_lock:
+        shared.available_backend_channels = [('TEST', 'random.1', None, 'float'), ('TEST', 'random.2', None, 'float')] + backend_channels
+
+    if len(shared.recent_channels) == 0:
+        with shared.recent_channels_lock:
+            shared.recent_channels = backend_channels[:10]
     shared.backend_sync_active = False
 
+def get_recent_channels():
+    return shared.recent_channels

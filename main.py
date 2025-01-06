@@ -46,7 +46,7 @@ def root():
     return {"message": "Hello, World!"}
 
 @app.get("/counter")
-def get_counter():
+def get_counter_route():
     # Get the counter from Redis (default to 0 if not set)
     counter = redis.get('counter')
     if counter is None:
@@ -55,7 +55,7 @@ def get_counter():
     return {"counter": int(counter)}
 
 @app.post("/increment")
-def increment_counter():
+def increment_counter_route():
     # Increment the counter in Redis
     counter = redis.incr('counter')
     return {"counter": int(counter)}

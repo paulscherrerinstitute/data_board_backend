@@ -9,16 +9,20 @@ class SharedVariables:
         self.REDIS_IMAGE_STREAM = 'image_stream'
 
         # Initialize a dictionary of channels to fetch: channel is the key and the last accessed time (secssinceepoch) is the value
-        self.channel_list = {'random.1|TEST': 1e20, 'random.2|TEST': 1e20}
+        self.active_channels = {'random.1|TEST': 1e20, 'random.2|TEST': 1e20}
         # Lock used to delete unused channels while making sure no others are added
-        self.channel_list_lock = Lock()
+        self.active_channels_lock = Lock()
         # How many seconds of channel data should be
         self.channel_store_time_seconds = 3600
         self.max_channel_frequency = 100
 
+        # Recently accessed channels, doesnt invalidate, unlike active channels & lock
+        self.recent_channels = {}
+        self.recent_channels_lock = Lock()
+
         # List to store channels available on backend & corresponding lock
-        self.backend_channels = []
-        self.backend_channels_lock = Lock()
+        self.available_backend_channels = []
+        self.available_backend_channels_lock = Lock()
 
         # Boolean to ensure only on backend sync is happening at a time
         self.backend_sync_active = False
