@@ -8,15 +8,14 @@ from shared_resources.variables import shared_variables as shared
 
 def search_channels(search_text = ".*", avoid_cached_result = False):
     matching_channels = []
-
+    avoid_cached_result = True
     if not avoid_cached_result:
         cached_channel_list = []
         with shared.available_backend_channels_lock:
             cached_channel_list = shared.available_backend_channels.copy()
-        for channel_tuple in cached_channel_list:
-            channel = channel_tuple[1]
-            if search_text.lower() in channel.lower():
-                matching_channels.append(channel_tuple)
+        for channel in cached_channel_list:
+            if search_text.lower() in channel["name"]:
+                matching_channels.append(channel)
         if not matching_channels:
             # Initiate a resync of available channels in case a new one was added
             Thread(target=cache_backend_channels).start()
@@ -24,13 +23,11 @@ def search_channels(search_text = ".*", avoid_cached_result = False):
     if not matching_channels:
         # While resync is running (effective only from next search onwards), query backend directly.
         with Daqbuf(backend=None, parallel=True) as source:
+            # Verboses gets us the plain response without any formatting, which would only slow everything down.
+            source.verbose = True
             result = source.search(search_text)
             if result is not None:
-                # Split the output into lines
-                lines = result.strip().split('\n')
-                # Extract channel names from each line after the header
-                channels = [line.split() for line in lines[1:]]
-                matching_channels = channels
+                matching_channels = result["channels"]
     return matching_channels
 
 
@@ -165,11 +162,12 @@ def cache_backend_channels():
     backend_channels = search_channels(avoid_cached_result = True)
 
     with shared.available_backend_channels_lock:
-        shared.available_backend_channels = [('TEST', 'random.1', None, 'float'), ('TEST', 'random.2', None, 'float')] + backend_channels
+        shared.available_backend_channels = [{'backend': 'TEST', 'name': 'random.1', 'seriesId': None, 'source': None, 'type': 'float', 'shape': [], 'unit': None, 'description': 'a test channel'}] + backend_channels
 
+    # In case there are no recent channels, take the last ten of the ones just fetched
     if len(shared.recent_channels) == 0:
         with shared.recent_channels_lock:
-            shared.recent_channels = backend_channels[:10]
+            shared.recent_channels = backend_channels[-10:]
     shared.backend_sync_active = False
 
 def get_recent_channels():
