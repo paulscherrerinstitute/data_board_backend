@@ -40,14 +40,12 @@ def data_aggregator():
         with ThreadPoolExecutor(max_workers=len(local_channel_list)) as executor:
             futures = [executor.submit(update_channel_data, channel) for channel in local_channel_list]
 
-            # Wait for all futures to complete
             for future in as_completed(futures):
-                # Check the result to detect exceptions
                 try:
                     future.result()
                 except Exception as e:
-                    # Will be logged by docker
                     print(f"An error occurred in an update_channel_data multithreaded execution: {e}")
+
         # Remove all channels that have not been accessed in the past 30 minutes
         current_time = time.time()
         time_thirty_minutes_ago = current_time - (30 * 60)
@@ -78,7 +76,7 @@ def update_channel_data(channel):
         if channel in ['random.1|TEST', 'random.2|TEST']:
             return
 
-        # Get the latest entry from
+        # Get the latest entry from redis
         redis_key = f"curve_stream:{channel}"
         latest_entry = {}
         if shared.redis_client.exists(redis_key):
@@ -93,8 +91,8 @@ def update_channel_data(channel):
         query = {
             "channels": [channel_name],
             # Get the datetimes in local time with utc specifier to feed api correctly
-            "start": datetime.datetime.utcfromtimestamp(latest_timestamp).isoformat(sep='T', timespec='milliseconds') + 'Z',
-            "end": datetime.datetime.utcfromtimestamp(time.time()).isoformat(sep='T', timespec='milliseconds') + 'Z',
+            "start": datetime.datetime.fromtimestamp(latest_timestamp, datetime.timezone.utc).isoformat(sep='T', timespec='milliseconds') + 'Z',
+            "end": datetime.datetime.fromtimestamp(time.time(), datetime.timezone.utc).isoformat(sep='T', timespec='milliseconds') + 'Z',
         }
 
         try:
@@ -158,7 +156,6 @@ def cache_backend_channels():
         return
     shared.backend_sync_active = True
 
-    # This takes forever, up to a minute.
     backend_channels = search_channels(avoid_cached_result = True)
 
     with shared.available_backend_channels_lock:
