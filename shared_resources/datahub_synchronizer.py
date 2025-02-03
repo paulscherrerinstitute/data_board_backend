@@ -8,15 +8,14 @@ from shared_resources.variables import shared_variables as shared
 
 def search_channels(search_text = ".*", avoid_cached_result = False):
     matching_channels = []
-
+    avoid_cached_result = True
     if not avoid_cached_result:
         cached_channel_list = []
         with shared.available_backend_channels_lock:
             cached_channel_list = shared.available_backend_channels.copy()
-        for channel_tuple in cached_channel_list:
-            channel = channel_tuple[1]
-            if search_text.lower() in channel.lower():
-                matching_channels.append(channel_tuple)
+        for channel in cached_channel_list:
+            if search_text.lower() in channel["name"]:
+                matching_channels.append(channel)
         if not matching_channels:
             # Initiate a resync of available channels in case a new one was added
             Thread(target=cache_backend_channels).start()
@@ -24,13 +23,11 @@ def search_channels(search_text = ".*", avoid_cached_result = False):
     if not matching_channels:
         # While resync is running (effective only from next search onwards), query backend directly.
         with Daqbuf(backend=None, parallel=True) as source:
+            # Verboses gets us the plain response without any formatting, which would only slow everything down.
+            source.verbose = True
             result = source.search(search_text)
             if result is not None:
-                # Split the output into lines
-                lines = result.strip().split('\n')
-                # Extract channel names from each line after the header
-                channels = [line.split() for line in lines[1:]]
-                matching_channels = channels
+                matching_channels = result["channels"]
     return matching_channels
 
 
@@ -43,14 +40,12 @@ def data_aggregator():
         with ThreadPoolExecutor(max_workers=len(local_channel_list)) as executor:
             futures = [executor.submit(update_channel_data, channel) for channel in local_channel_list]
 
-            # Wait for all futures to complete
             for future in as_completed(futures):
-                # Check the result to detect exceptions
                 try:
                     future.result()
                 except Exception as e:
-                    # Will be logged by docker
                     print(f"An error occurred in an update_channel_data multithreaded execution: {e}")
+
         # Remove all channels that have not been accessed in the past 30 minutes
         current_time = time.time()
         time_thirty_minutes_ago = current_time - (30 * 60)
@@ -81,7 +76,7 @@ def update_channel_data(channel):
         if channel in ['random.1|TEST', 'random.2|TEST']:
             return
 
-        # Get the latest entry from
+        # Get the latest entry from redis
         redis_key = f"curve_stream:{channel}"
         latest_entry = {}
         if shared.redis_client.exists(redis_key):
@@ -96,8 +91,8 @@ def update_channel_data(channel):
         query = {
             "channels": [channel_name],
             # Get the datetimes in local time with utc specifier to feed api correctly
-            "start": datetime.datetime.utcfromtimestamp(latest_timestamp).isoformat(sep='T', timespec='milliseconds') + 'Z',
-            "end": datetime.datetime.utcfromtimestamp(time.time()).isoformat(sep='T', timespec='milliseconds') + 'Z',
+            "start": datetime.datetime.fromtimestamp(latest_timestamp, datetime.timezone.utc).isoformat(sep='T', timespec='milliseconds') + 'Z',
+            "end": datetime.datetime.fromtimestamp(time.time(), datetime.timezone.utc).isoformat(sep='T', timespec='milliseconds') + 'Z',
         }
 
         try:
@@ -161,15 +156,15 @@ def cache_backend_channels():
         return
     shared.backend_sync_active = True
 
-    # This takes forever, up to a minute.
     backend_channels = search_channels(avoid_cached_result = True)
 
     with shared.available_backend_channels_lock:
-        shared.available_backend_channels = [('TEST', 'random.1', None, 'float'), ('TEST', 'random.2', None, 'float')] + backend_channels
+        shared.available_backend_channels = [{'backend': 'TEST', 'name': 'random.1', 'seriesId': None, 'source': None, 'type': 'float', 'shape': [], 'unit': None, 'description': 'a test channel'}] + backend_channels
 
+    # In case there are no recent channels, take the last ten of the ones just fetched
     if len(shared.recent_channels) == 0:
         with shared.recent_channels_lock:
-            shared.recent_channels = backend_channels[:10]
+            shared.recent_channels = backend_channels[-10:]
     shared.backend_sync_active = False
 
 def get_recent_channels():
