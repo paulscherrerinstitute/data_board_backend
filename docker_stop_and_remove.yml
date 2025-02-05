@@ -53,18 +53,15 @@
     - name: Remove Docker image for frontend
       docker_image:
         name: "{{ FRONTEND_IMAGE }}"
-        tag: "latest"
         state: absent
 
     - name: Remove Docker image for backend
       docker_image:
         name: "{{ BACKEND_IMAGE }}"
-        tag: "latest"
         state: absent
 
     - name: Remove Docker image for Redis
       docker_image:
         name: "{{ REDIS_IMAGE }}"
-        tag: "latest"
         state: absent
 
