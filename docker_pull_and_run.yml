@@ -22,13 +22,12 @@
     - name: Pull Docker image for Redis from registry
       docker_image:
         name: "{{ REDIS_IMAGE }}"
-        tag: "latest"
         source: pull
 
     - name: Run Docker container for Redis with custom config inline
       docker_container:
         name: data_board_redis
-        image: "{{ REDIS_IMAGE }}:latest"
+        image: "{{ REDIS_IMAGE }}"
         state: started
         restart_policy: unless-stopped
         ports:
@@ -47,13 +46,12 @@
     - name: Pull Docker image for backend from registry
       docker_image:
         name: "{{ BACKEND_IMAGE }}"
-        tag: "latest"
         source: pull
 
     - name: Run Docker container for backend
       docker_container:
         name: data_board_backend
-        image: "{{ BACKEND_IMAGE }}:latest"
+        image: "{{ BACKEND_IMAGE }}"
         state: started
         restart_policy: unless-stopped
         ports:
@@ -74,13 +72,12 @@
     - name: Pull Docker image for frontend from registry
       docker_image:
         name: "{{ FRONTEND_IMAGE }}"
-        tag: "latest"
         source: pull
 
     - name: Run Docker container for frontend
       docker_container:
         name: data_board_frontend
-        image: "{{ FRONTEND_IMAGE }}:latest"
+        image: "{{ FRONTEND_IMAGE }}"
         state: started
         restart_policy: unless-stopped
         ports:
