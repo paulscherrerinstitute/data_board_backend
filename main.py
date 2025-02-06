@@ -6,20 +6,16 @@ from os import getenv
 from threading import Thread
 
 from shared_resources.datahub_synchronizer import data_aggregator, backend_synchronizer
+from shared_resources.variables import shared_variables as shared
 
 from routers import (
     channels,
     dashboards
 )
 
-# Connect to Redis
-redis_host = getenv('REDIS_HOST', 'localhost')
-redis_port = getenv('REDIS_PORT', '6379')
-redis = Redis(host=redis_host, port=redis_port, db=0)
-
 def is_redis_connected():
     try:
-        redis.ping() 
+        shared.redis_client.ping() 
     except Exception:
         raise RuntimeError("Redis server is not reachable")
 
