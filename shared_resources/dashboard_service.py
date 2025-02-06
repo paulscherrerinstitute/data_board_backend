@@ -6,7 +6,7 @@ import uuid
 from shared_resources.variables import shared_variables as shared
 
 def create_dashboard(dashboard: Dict[str, Any]) -> Dict[str, Any]:
-    id = uuid.uuid4().hex
+    id = str(uuid.uuid4())
     dashboard_json = json.dumps(dashboard)
     shared.redis_client.set(f"dashboard:{id}", dashboard_json)
     return {"id": id, **dashboard}
