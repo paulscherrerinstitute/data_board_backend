@@ -8,7 +8,8 @@ from threading import Thread
 from shared_resources.datahub_synchronizer import data_aggregator, backend_synchronizer
 
 from routers import (
-    channels
+    channels,
+    dashboards
 )
 
 # Connect to Redis
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(channels.router, prefix='/channels')
+app.include_router(dashboards.router, prefix="/dashboard")
 
 # Allow requests from everywhere
 app.add_middleware(

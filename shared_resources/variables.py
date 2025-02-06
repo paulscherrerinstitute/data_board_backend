@@ -1,9 +1,10 @@
+from os import getenv
 import redis
 from threading import Lock
 
 class SharedVariables:
     def __init__(self):
-        self.redis_client = redis.StrictRedis(host='redis', port=6379, db=0, decode_responses=True)
+        self.redis_client = redis.StrictRedis(host=getenv("REDIS_HOST", "redis"), port=getenv("REDIS_PORT", 6379), db=0, decode_responses=True)
         self.REDIS_IMAGE_STREAM = 'image_stream'
 
         # Channels to fetch: channel is the key and the last accessed time (secssinceepoch) is the value
