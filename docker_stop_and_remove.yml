@@ -1,0 +1,67 @@
+- name: Stop and remove the running containers for frontend, backend and redis, also remove the images
+  hosts: localhost
+  connection: local
+  become: true
+  tasks:
+
+    - name: Set default values if variables are not defined
+      set_fact:
+        BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('container.psi.ch/controls-ci/data_board_backend') }}"
+        FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('container.psi.ch/controls-ci/data_board_frontend') }}"
+        REDIS_IMAGE: "{{ REDIS_IMAGE | default('redis') }}"
+        BACKEND_PORT: "{{ BACKEND_PORT | default(8080) }}"
+        BACKEND_HOST: "{{ BACKEND_HOST | default('http://' + ansible_default_ipv4.address) }}"
+        FRONTEND_PORT: "{{ FRONTEND_PORT | default(80) }}"
+        REDIS_PORT: "{{ REDIS_PORT | default(6379) }}"
+
+    - name: Stop Docker container for frontend
+      docker_container:
+        name: data_board_frontend
+        state: stopped
+
+    - name: Stop Docker container for backend
+      docker_container:
+        name: data_board_backend
+        state: stopped
+
+    - name: Stop Docker container for Redis
+      docker_container:
+        name: data_board_redis
+        state: stopped
+
+    - name: Remove Docker container for frontend
+      docker_container:
+        name: data_board_frontend
+        state: absent
+
+    - name: Remove Docker container for backend
+      docker_container:
+        name: data_board_backend
+        state: absent
+
+    - name: Remove Docker container for Redis
+      docker_container:
+        name: data_board_redis
+        state: absent
+
+    - name: Remove Docker network
+      docker_network:
+        name: data_board_network
+        state: absent
+        force: yes
+
+    - name: Remove Docker image for frontend
+      docker_image:
+        name: "{{ FRONTEND_IMAGE }}"
+        state: absent
+
+    - name: Remove Docker image for backend
+      docker_image:
+        name: "{{ BACKEND_IMAGE }}"
+        state: absent
+
+    - name: Remove Docker image for Redis
+      docker_image:
+        name: "{{ REDIS_IMAGE }}"
+        state: absent
+
