@@ -36,8 +36,8 @@ async def curve_data_route(channel_name: str, begin_time: int, end_time: int, ba
 
     query = {
         "channels": [channel_name],
-        "start": datetime.fromtimestamp(begin_time, timezone.utc).isoformat(sep=' ', timespec='milliseconds'),
-        "end": datetime.fromtimestamp(end_time, timezone.utc).isoformat(sep=' ', timespec='milliseconds')
+        "start": datetime.fromtimestamp(begin_time / 1000, timezone.utc).isoformat(sep=' ', timespec='milliseconds'),
+        "end": datetime.fromtimestamp(end_time / 1000, timezone.utc).isoformat(sep=' ', timespec='milliseconds')
     }
     if num_bins > 0:
         query["bins"] = num_bins
