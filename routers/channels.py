@@ -11,13 +11,17 @@ router = APIRouter()
 
 @router.get("/search", tags=["channels"])
 @timeout(15)
-def search_channels_route(search_text: str = ""):
+def search_channels_route(search_text: str = "", allow_cached_response = True):
     channels = []
-    if search_text == "":
+    if search_text == "" and allow_cached_response:
         # Return all channels
         channels = shared.available_backend_channels.copy()
     else: 
-        channels = search_channels(search_text=search_text.strip())
+        channels = search_channels(search_text=search_text.strip(), allow_cached_response=allow_cached_response)
+    # To avoid precision loss in browsers, transmit seriresId as string
+    for channel in channels:
+        if channel["seriesId"] and type(channel["seriesId"]) == int:
+            channel["seriesId"] = str(channel["seriesId"])
     result = {"channels": channels}
     return JSONResponse(content=result, status_code=200)
 
@@ -37,7 +41,8 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         entry = next((item for item in shared.available_backend_channels if item['seriesId'] == int(channel_name)), None)
     else:
         entry = next((item for item in shared.available_backend_channels if item['name'] == channel_name), None)
-    if not entry and not search_channels(channel_name.strip()):
+    # Don't verify channel if seriesId is used
+    if not channel_name.isdigit() and not search_channels(channel_name.strip()):
         raise HTTPException(status_code=404, detail="Channel does not exist in backend")
     if begin_time * end_time == 0:
         raise HTTPException(status_code=400, detail="begin_time or end_time is invalid, must be valid unix time (seconds)")
