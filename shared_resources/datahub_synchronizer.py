@@ -56,8 +56,11 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
             source.join()
             
             dataframe = table.as_dataframe()
-            data = dataframe.to_dict(orient='index')
-            curve[channel_name] = {timestamp: entry[channel_name] for timestamp, entry in data.items()}
+            if not dataframe.empty:
+                data = dataframe.to_dict(orient='index')
+                curve[channel_name] = {timestamp: entry[channel_name] for timestamp, entry in data.items()}
+            else:
+                curve[channel_name] = {}
     except Exception as e:
         print(e)
         raise RuntimeError

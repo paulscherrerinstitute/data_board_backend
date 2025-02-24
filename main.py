@@ -37,9 +37,9 @@ async def lifespan(app: FastAPI):
     # Execute app
     yield
 
-    # Stop threads, give them 3 seconds to gracefully quit
-    aggregator_thread.join(3)
-    backend_channel_thread.join(3)
+    # Stop threads, give them 1 second to gracefully quit
+    aggregator_thread.join(1)
+    backend_channel_thread.join(1)
 
 app = FastAPI(lifespan=lifespan)
 
