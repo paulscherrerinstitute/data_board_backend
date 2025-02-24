@@ -30,6 +30,39 @@ def search_channels(search_text = ".*", avoid_cached_result = False):
                 matching_channels = result["channels"]
     return matching_channels
 
+def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: str, num_bins: int, query_expansion: bool, entry: dict):
+    if entry:
+        with shared.recent_channels_lock:
+            if entry in shared.recent_channels:
+                shared.recent_channels.remove(entry)
+            shared.recent_channels.insert(0, entry)
+            while len(shared.recent_channels) > 10:
+                shared.recent_channels.pop()
+
+    query = {
+        "channels": [channel_name],
+        "start": datetime.datetime.fromtimestamp(begin_time / 1000, timezone.utc).isoformat(sep=' ', timespec='milliseconds'),
+        "end": datetime.datetime.fromtimestamp(end_time / 1000, timezone.utc).isoformat(sep=' ', timespec='milliseconds')
+    }
+    if num_bins > 0:
+        query["bins"] = num_bins
+
+    curve = {}
+    try:
+        with Daqbuf(backend=backend) as source:
+            table = Table()
+            source.add_listener(table)
+            source.request(query, background=True)
+            source.join()
+            
+            dataframe = table.as_dataframe()
+            data = dataframe.to_dict(orient='index')
+            curve[channel_name] = {timestamp: entry[channel_name] for timestamp, entry in data.items()}
+    except Exception as e:
+        print(e)
+        raise RuntimeError
+    result = {"curve": curve}
+    return result
 
 def data_aggregator():
     while True:
