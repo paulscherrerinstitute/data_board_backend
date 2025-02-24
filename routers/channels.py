@@ -41,6 +41,10 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         raise HTTPException(status_code=404, detail="Channel does not exist in backend")
     if begin_time * end_time == 0:
         raise HTTPException(status_code=400, detail="begin_time or end_time is invalid, must be valid unix time (seconds)")
+    if begin_time > end_time:
+        raise HTTPException(status_code=400, detail="begin_time is bigger than end_time, must be smaller or equal")
+    if end_time > time.time() * 1000:
+        raise HTTPException(status_code=400, detail="end_time is in the future, cannot request data for the future")
 
     try:
         result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, query_expansion=query_expansion, entry=entry)

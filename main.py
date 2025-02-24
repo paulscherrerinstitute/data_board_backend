@@ -17,7 +17,7 @@ def is_redis_connected():
     try:
         shared.redis_client.ping() 
     except Exception:
-        raise RuntimeError("Redis server is not reachable")
+        raise RuntimeError("Redis server is not reachable. Have you set the REDIS_HOST and REDIS_PORT environment variables correctly?")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
