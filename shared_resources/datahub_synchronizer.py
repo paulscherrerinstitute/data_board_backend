@@ -58,7 +58,10 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
             dataframe = table.as_dataframe()
             if dataframe is not None and not dataframe.empty:
                 data = dataframe.to_dict(orient='index')
-                curve[channel_name] = {timestamp: entry[channel_name] for timestamp, entry in data.items()}
+                for timestamp, entry in data.items():
+                    curve.setdefault(channel_name, {})[timestamp] = entry[channel_name]
+                    curve.setdefault(channel_name + "_min", {})[timestamp] = entry[channel_name + " min"]
+                    curve.setdefault(channel_name + "_max", {})[timestamp] = entry[channel_name + " max"]
             else:
                 curve[channel_name] = {}
     except Exception as e:
