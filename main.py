@@ -1,8 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from redis import Redis
-from os import getenv
 from threading import Thread
 
 from shared_resources.datahub_synchronizer import data_aggregator, backend_synchronizer
@@ -58,18 +56,3 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Hello, World!"}
-
-@app.get("/counter")
-def get_counter_route():
-    # Get the counter from Redis (default to 0 if not set)
-    counter = redis.get('counter')
-    if counter is None:
-        counter = 0
-        redis.set('counter', counter)
-    return {"counter": int(counter)}
-
-@app.post("/increment")
-def increment_counter_route():
-    # Increment the counter in Redis
-    counter = redis.incr('counter')
-    return {"counter": int(counter)}
