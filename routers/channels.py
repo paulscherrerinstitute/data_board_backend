@@ -34,7 +34,7 @@ def recent_channels_route():
 
 @router.get("/curve", tags=["channels"])
 @timeout(30)
-def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend: str = "sf-databuffer", num_bins: int = 0, query_expansion: bool = False):
+def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend: str = "sf-databuffer", num_bins: int = 0, useEventsIfBinCountTooLarge: bool = False, removeEmptyBins: bool = False):
     entry = {}
     # If the channel name can be converted to an integer, treat it as seriesId.
     if channel_name.isdigit():
@@ -52,7 +52,7 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         raise HTTPException(status_code=400, detail="end_time is in the future, cannot request data for the future")
 
     try:
-        result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, query_expansion=query_expansion, entry=entry)
+        result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge, removeEmptyBins=removeEmptyBins,  entry=entry)
         return JSONResponse(content=result, status_code=200)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail="Error fetching data from backend")
