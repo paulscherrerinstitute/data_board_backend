@@ -68,7 +68,7 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
                             actualData += entry[channel_name + " count"]
                         except KeyError and ValueError and TypeError:
                             continue
-                    if actualData < num_bins:
+                    if not actualData == 0 and actualData < num_bins:
                         raw = True
                         source.remove_listeners()
                         table = Table()
