@@ -15,7 +15,7 @@ class SharedVariables:
         self.max_channel_frequency = 100
 
         # Recently accessed channels, doesnt invalidate, unlike active channels
-        self.recent_channels = {}
+        self.recent_channels = []
         self.recent_channels_lock = Lock()
 
         # Channels available on backend and therefore to be used to answer channel searches
