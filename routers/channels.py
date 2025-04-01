@@ -17,7 +17,7 @@ def search_channels_route(search_text: str = "", allow_cached_response = True):
         # Return all channels
         channels = shared.available_backend_channels.copy()
     else: 
-        channels = search_channels(search_text=search_text.strip(), allow_cached_response=allow_cached_response)
+        channels = search_channels(search_text=search_text.strip())
     # To avoid precision loss in browsers, transmit seriresId as string
     for channel in channels:
         if channel["seriesId"] and type(channel["seriesId"]) == int:
@@ -36,11 +36,6 @@ def recent_channels_route():
 @timeout(30)
 def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend: str = "sf-databuffer", num_bins: int = 0, useEventsIfBinCountTooLarge: bool = False, removeEmptyBins: bool = False):
     entry = {}
-    # If the channel name can be converted to an integer, treat it as seriesId.
-    if channel_name.isdigit():
-        entry = next((item for item in shared.available_backend_channels if item['seriesId'] == int(channel_name)), None)
-    else:
-        entry = next((item for item in shared.available_backend_channels if item['name'] == channel_name), None)
     # Don't verify channel if seriesId is used
     if not channel_name.isdigit() and not search_channels(channel_name.strip()):
         raise HTTPException(status_code=404, detail="Channel does not exist in backend")
