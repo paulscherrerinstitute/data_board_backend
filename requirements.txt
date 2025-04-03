@@ -12,5 +12,5 @@ python-dateutil==2.9.0.post0
 bitshuffle==0.5.2
 pytz==2024.2
 pandas==2.2.3
-matplotlib==3.9.3
+matplotlib==3.9.4
 psutil==6.1.0
