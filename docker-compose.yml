@@ -9,7 +9,7 @@ services:
       - data_board_network
 
   backend:
-    image: "${BACKEND_IMAGE:-container.psi.ch/controls-ci/data_board_backend}"
+    image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend}"
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     restart: unless-stopped
@@ -20,7 +20,7 @@ services:
       - data_board_network
 
   frontend:
-    image: "${FRONTEND_IMAGE:-container.psi.ch/controls-ci/data_board_frontend}"
+    image: "${FRONTEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_frontend}"
     ports:
       - "${FRONTEND_PORT:-80}:80"
     restart: unless-stopped
