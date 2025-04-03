@@ -3,11 +3,10 @@
   connection: local
   become: true
   tasks:
-
     - name: Set default values if variables are not defined
       set_fact:
-        BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('container.psi.ch/controls-ci/data_board_backend') }}"
-        FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('container.psi.ch/controls-ci/data_board_frontend') }}"
+        BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_backend') }}"
+        FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_frontend') }}"
         REDIS_IMAGE: "{{ REDIS_IMAGE | default('redis') }}"
         BACKEND_PORT: "{{ BACKEND_PORT | default(8080) }}"
         BACKEND_HOST: "{{ BACKEND_HOST | default('http://' + ansible_default_ipv4.address) }}"
@@ -64,4 +63,3 @@
       docker_image:
         name: "{{ REDIS_IMAGE }}"
         state: absent
-
