@@ -15,14 +15,19 @@ def search_channels_route(search_text: str = "", allow_cached_response = True):
     channels = []
     if search_text == "" and allow_cached_response:
         # Return all channels
-        channels = shared.available_backend_channels.copy()
+        channels = list(shared.available_backend_channels)
     else: 
         channels = search_channels(search_text=search_text.strip(), allow_cached_response=allow_cached_response)
+
     # To avoid precision loss in browsers, transmit seriresId as string
+    processed_channels = []
     for channel in channels:
-        if channel["seriesId"] and type(channel["seriesId"]) == int:
-            channel["seriesId"] = str(channel["seriesId"])
-    result = {"channels": channels}
+        channel_copy = channel.copy()
+        if isinstance(channel_copy.get("seriesId"), int):
+            channel_copy["seriesId"] = str(channel_copy["seriesId"])
+        processed_channels.append(channel_copy)
+    result = {"channels": processed_channels}
+    
     return JSONResponse(content=result, status_code=200)
 
 @router.get("/recent", tags=["channels"])
