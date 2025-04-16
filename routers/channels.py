@@ -57,7 +57,7 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         raise HTTPException(status_code=400, detail="end_time is in the future, cannot request data for the future")
 
     try:
-        result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge, removeEmptyBins=removeEmptyBins,  entry=entry)
+        result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge, removeEmptyBins=removeEmptyBins,  channel_entry=entry)
         return JSONResponse(content=result, status_code=200)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail="Error fetching data from backend")
