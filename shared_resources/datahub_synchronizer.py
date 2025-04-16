@@ -8,13 +8,12 @@ from shared_resources.variables import shared_variables as shared
 def search_channels(search_text = ".*", allow_cached_response = True):
     matching_channels = []
     if allow_cached_response:
-        cached_channel_list = []
         with shared.available_backend_channels_lock:
-            cached_channel_list = shared.available_backend_channels.copy()
+            cached_channel_list = list(shared.available_backend_channels)
         for channel in cached_channel_list:
             if search_text.lower() in channel["name"]:
-                matching_channels.append(channel)
-        if not matching_channels:
+                matching_channels.append(channel.copy())
+        if not matching_channels and not shared.backend_sync_active:
             # Initiate a resync of available channels in case a new one was added
             Thread(target=cache_backend_channels).start()
 
@@ -25,15 +24,17 @@ def search_channels(search_text = ".*", allow_cached_response = True):
             source.verbose = True
             result = source.search(search_text)
             if result is not None:
-                matching_channels = result["channels"]
+                matching_channels = [
+                    channel.copy() for channel in result.get("channels", [])
+                ]
     return matching_channels
 
-def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: str, num_bins: int, useEventsIfBinCountTooLarge: bool, removeEmptyBins: bool, entry: dict):
-    if entry:
+def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: str, num_bins: int, useEventsIfBinCountTooLarge: bool, removeEmptyBins: bool, channel_entry: dict):
+    if channel_entry:
         with shared.recent_channels_lock:
-            if entry in shared.recent_channels:
-                shared.recent_channels.remove(entry)
-            shared.recent_channels.insert(0, entry)
+            if channel_entry in shared.recent_channels:
+                shared.recent_channels.remove(channel_entry)
+            shared.recent_channels.insert(0, channel_entry)
             while len(shared.recent_channels) > 10:
                 shared.recent_channels.pop()
 
@@ -53,6 +54,7 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
             source.add_listener(table)
             source.request(query, background=True)
             source.join()
+            source.remove_listeners()
             source.verbose = True
             
             dataframe = table.as_dataframe()
@@ -65,16 +67,17 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
                     for _, entry in items:
                         try:
                             actualData += entry[channel_name + " count"]
-                        except KeyError and ValueError and TypeError:
+                        except (KeyError, ValueError, TypeError):
                             continue
                     if not actualData == 0 and actualData < num_bins:
                         raw = True
-                        source.remove_listeners()
-                        table = Table()
+                        
+                        table.clear()
                         source.add_listener(table)
                         query.pop("bins")
                         source.request(query, background=True)
                         source.join()
+                        source.remove_listeners()
                         dataframe = table.as_dataframe()
                         if dataframe is not None and not dataframe.empty:
                             data = dataframe.to_dict(orient='index')
@@ -89,6 +92,7 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
                     if not raw:
                         curve.setdefault(channel_name + "_min", {})[timestamp] = entry[channel_name + " min"]
                         curve.setdefault(channel_name + "_max", {})[timestamp] = entry[channel_name + " max"]
+                table.clear()
             else:
                 curve[channel_name] = {}
     except Exception as e:
