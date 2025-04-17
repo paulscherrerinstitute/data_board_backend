@@ -6,7 +6,6 @@ class SharedVariables:
     def __init__(self):
         self.redis_client = redis.StrictRedis(host=getenv("REDIS_HOST", "redis"), port=getenv("REDIS_PORT", 6379), db=0, decode_responses=True)
 
-        # Recently accessed channels, doesnt invalidate, unlike active channels
         self.recent_channels = []
         self.recent_channels_lock = Lock()
 
