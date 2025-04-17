@@ -5,6 +5,9 @@ from threading import Thread
 
 from shared_resources.variables import shared_variables as shared
 
+import logging
+logger = logging.getLogger("uvicorn")
+
 def search_channels(search_text = ".*", allow_cached_response = True):
     matching_channels = []
     cache_miss = False
@@ -101,7 +104,7 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
             else:
                 curve[channel_name] = {}
     except Exception as e:
-        print(e)
+        logger.error(f"Error in get_curve_data: {e}")
         raise RuntimeError
     result = {"curve": curve}
     result["raw"] = raw
@@ -130,7 +133,7 @@ def backend_synchronizer():
             cache_backend_channels()
             time.sleep(one_hour_in_seconds)
         except Exception as e:
-            print(f"Error while retrieving available channels on backend: {e}")
+            logger.error(f"Error in backend_synchronizer: {e}")
             time.sleep(30)
 
 def get_recent_channels():

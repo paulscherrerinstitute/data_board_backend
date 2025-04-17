@@ -7,6 +7,9 @@ from shared_resources.decorators import timeout
 from shared_resources.variables import shared_variables as shared
 from shared_resources.datahub_synchronizer import search_channels, get_curve_data, get_recent_channels
 
+import logging
+logger = logging.getLogger("uvicorn")
+
 router = APIRouter()
 
 @router.get("/search", tags=["channels"])
@@ -60,4 +63,5 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge, removeEmptyBins=removeEmptyBins,  channel_entry=entry)
         return JSONResponse(content=result, status_code=200)
     except RuntimeError as e:
+        logger.error(f"Error in curve_data_route: {e}")
         raise HTTPException(status_code=500, detail="Error fetching data from backend")
