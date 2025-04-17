@@ -7,15 +7,15 @@ from shared_resources.variables import shared_variables as shared
 
 def search_channels(search_text = ".*", allow_cached_response = True):
     matching_channels = []
+    cache_miss = False
     if allow_cached_response:
         with shared.available_backend_channels_lock:
             cached_channel_list = list(shared.available_backend_channels)
         for channel in cached_channel_list:
             if search_text.lower() in channel["name"]:
                 matching_channels.append(channel.copy())
-        if not matching_channels and not shared.backend_sync_active:
-            # Initiate a resync of available channels in case a new one was added
-            Thread(target=cache_backend_channels).start()
+        if not matching_channels:
+            cache_miss = True
 
     if not matching_channels:
         # While resync is running (effective only from next search onwards), query backend directly.
@@ -27,6 +27,11 @@ def search_channels(search_text = ".*", allow_cached_response = True):
                 matching_channels = [
                     channel.copy() for channel in result.get("channels", [])
                 ]
+
+    # Initiate a resync of available channels in case a new one was added
+    if matching_channels and cache_miss:
+        Thread(target=cache_backend_channels).start()
+
     return matching_channels
 
 def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: str, num_bins: int, useEventsIfBinCountTooLarge: bool, removeEmptyBins: bool, channel_entry: dict):
