@@ -103,7 +103,7 @@ def create_dashboard(dashboard: Dict[str, Any]) -> Dict[str, Any]:
     enforce_storage_limits()
     return {"id": dashboard_id, **dashboard}
 
-def get_dashboard(dashboard_id: str) -> Dict[str, Any]:
+def get_dashboard(dashboard_id: str) -> Optional[Dict[str, Any]]:
     doc = shared.mongo_db["dashboards"].find_one_and_update(
         {"_id": dashboard_id}, {"$set": {"last_access": datetime.now(timezone.utc)}},
         return_document=ReturnDocument.AFTER
