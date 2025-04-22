@@ -12,10 +12,11 @@ from shared_resources.variables import shared_variables as shared
 import logging
 logger = logging.getLogger("uvicorn")
 
-MAX_DASHBOARD_SIZE = 1024 * 1024 # 1MB
-
+MAX_DASHBOARD_SIZE = int(os.getenv("MAX_DASHBOARD_SIZE", 1024 * 1024))
 DEFAULT_SCHEMA_BASE_URL = "https://raw.githubusercontent.com/paulscherrerinstitute/data_board_frontend/main/schema/"
 SCHEMA_PATH = os.getenv("SCHEMA_PATH", DEFAULT_SCHEMA_BASE_URL)
+VALIDATE_DASHBOARD_SCHEMA = os.getenv("VALIDATE_DASHBOARD_SCHEMA", "true").lower() in ("1", "true", "yes", "on")
+VALIDATE_DASHBOARD_SIZE = os.getenv("VALIDATE_DASHBOARD_SIZE", "true").lower() in ("1", "true", "yes", "on")
 
 def fetch_schema(schema_name: str) -> Dict:
     base = SCHEMA_PATH.rstrip("/")
@@ -37,6 +38,8 @@ def fetch_schema(schema_name: str) -> Dict:
 dashboard_schema = fetch_schema("dashboarddto.schema.json")
 
 def check_dashboard_schema(dashboard: Dict[str, Any]) -> None:
+    if not VALIDATE_DASHBOARD_SCHEMA:
+        return True
     try:
         validate(instance=dashboard, schema=dashboard_schema)
     except ValidationError as e:
@@ -44,6 +47,8 @@ def check_dashboard_schema(dashboard: Dict[str, Any]) -> None:
         raise DashboardValidationError(f"Dashboard validation failed.")
 
 def check_dashboard_size(dashboard: Dict[str, Any]) -> None:
+    if not VALIDATE_DASHBOARD_SIZE:
+        return True
     dashboard_bson = bson.encode(dashboard)
     dashboard_bson_length = len(dashboard_bson)
     if dashboard_bson_length > MAX_DASHBOARD_SIZE:

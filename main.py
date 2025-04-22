@@ -13,7 +13,6 @@ from routers import (
 
 def is_mongo_connected():
     try:
-        # This just triggers a cheap call to check if the server responds
         shared.mongo_client.admin.command("ping")
     except Exception:
         raise RuntimeError("MongoDB server is not reachable. Have you set the MONGO_HOST and MONGO_PORT environment variables correctly?")
