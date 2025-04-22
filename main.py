@@ -11,16 +11,17 @@ from routers import (
     dashboards
 )
 
-def is_redis_connected():
+def is_mongo_connected():
     try:
-        shared.redis_client.ping() 
+        # This just triggers a cheap call to check if the server responds
+        shared.mongo_client.admin.command("ping")
     except Exception:
-        raise RuntimeError("Redis server is not reachable. Have you set the REDIS_HOST and REDIS_PORT environment variables correctly?")
+        raise RuntimeError("MongoDB server is not reachable. Have you set the MONGO_HOST and MONGO_PORT environment variables correctly?")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Check redis connectivity
-    is_redis_connected()
+    # Check mongodb connectivity
+    is_mongo_connected()
 
     # Start the backend synchronizer in a separate thread
     backend_channel_thread = Thread(target=backend_synchronizer)

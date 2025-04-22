@@ -1,9 +1,10 @@
 services:
-  redis:
-    image: "${REDIS_IMAGE:-redis}"
-    command: ["redis-server", "--save", '""', "--appendonly", "no"]
+  mongo:
+    image: "${MONGO_IMAGE:-mongo:latest}"
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: "${MONGO_DB_NAME:-databoard}"
     restart: unless-stopped
     networks:
       - data_board_network
@@ -14,8 +15,10 @@ services:
       - "${BACKEND_PORT:-8080}:8080"
     restart: unless-stopped
     environment:
-      REDIS_HOST: "redis"
-      REDIS_PORT: "${REDIS_PORT:-6379}"
+      MONGO_HOST: "mongo"
+      MONGO_PORT: "${MONGO_PORT:-27017}"
+      MONGO_DB_NAME: "${MONGO_DB_NAME:-databoard}"
+      SCHEMA_PATH: "${SCHEMA_PATH:-}"
     networks:
       - data_board_network
 

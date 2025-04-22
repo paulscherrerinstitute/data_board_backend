@@ -16,7 +16,16 @@ def search_channels(search_text = ".*", allow_cached_response = True):
             cached_channel_list = list(shared.available_backend_channels)
         for channel in cached_channel_list:
             if search_text.lower() in channel["name"]:
-                matching_channels.append(channel.copy())
+                matching_channels.append({
+                    "backend": str(channel.get("backend", "")),
+                    "name": str(channel.get("name", "")),
+                    "seriesId": str(channel.get("seriesId", "")),
+                    "source": str(channel.get("source", "")),
+                    "type": str(channel.get("type", "")),
+                    "shape": channel.get("shape", ""), # May be []
+                    "unit": str(channel.get("unit", "")),
+                    "description": str(channel.get("description", ""))
+                })
         if not matching_channels:
             cache_miss = True
 
@@ -28,7 +37,17 @@ def search_channels(search_text = ".*", allow_cached_response = True):
             result = source.search(search_text)
             if result is not None:
                 matching_channels = [
-                    channel.copy() for channel in result.get("channels", [])
+                    {
+                        "backend": str(channel.get("backend", "")),
+                        "name": str(channel.get("name", "")),
+                        "seriesId": str(channel.get("seriesId", "")),
+                        "source": str(channel.get("source", "")),
+                        "type": str(channel.get("type", "")),
+                        "shape": channel.get("shape", ""), # May be []
+                        "unit": str(channel.get("unit", "")),
+                        "description": str(channel.get("description", ""))
+                    }
+                    for channel in result.get("channels", [])
                 ]
 
     # Initiate a resync of available channels in case a new one was added
