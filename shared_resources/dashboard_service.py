@@ -2,6 +2,7 @@ import json
 from jsonschema import validate, ValidationError
 from typing import Any, Dict
 import bson
+from pymongo import ReturnDocument
 import requests
 import os
 import uuid
@@ -73,7 +74,7 @@ def update_dashboard(dashboard_id: str, dashboard: Dict[str, Any]) -> Dict[str, 
     updated_doc = shared.mongo_db["dashboards"].find_one_and_update(
         {"_id": dashboard_id},
         {"$set": {"dashboard": dashboard}},
-        return_document=True
+        return_document=ReturnDocument.AFTER
     )
     if updated_doc is None or "dashboard" not in updated_doc:
         return None
