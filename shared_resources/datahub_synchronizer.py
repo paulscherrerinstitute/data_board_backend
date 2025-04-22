@@ -63,6 +63,7 @@ def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw
 
     # prepare output containers
     curve = {channel_name: {}}
+    curve[f"{channel_name}_meta"] = {"raw": raw}
     if min_name in daqbuf_data:
         curve[f"{channel_name}_min"] = {}
     if max_name in daqbuf_data:
@@ -82,27 +83,28 @@ def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw
             if count and int(count[count_name]) == 0:
                 continue
 
-        # base
-        bucket = curve[channel_name].setdefault(timestamp, {})
+        # value
         value = record[channel_name]
-        bucket["value"] = value.id if isinstance(value, datahub.Enum) else float(value)
-        if raw:
-            bucket["pulseId"] = record.get("pulse_id")
-
-        # count
-        count = count_map.get(timestamp)
-        if count:
-            bucket["count"] = int(count[count_name])
+        curve[channel_name][timestamp] = value.id if isinstance(value, datahub.Enum) else float(value)
 
         # min
         if timestamp in min_map:
-            curve[f"{channel_name}_min"].setdefault(timestamp, {})["value"] = float(min_map[timestamp][min_name])
+            curve[f"{channel_name}_min"][timestamp] = float(min_map[timestamp][min_name])
 
         # max
         if timestamp in max_map:
-            curve[f"{channel_name}_max"].setdefault(timestamp, {})["value"] = float(max_map[timestamp][max_name])
+            curve[f"{channel_name}_max"][timestamp] = float(max_map[timestamp][max_name])
 
-    return {"curve": curve, "raw": raw}
+        # Metainformation
+        count = count_map.get(timestamp)
+        if count or raw:
+            meta = curve[f"{channel_name}_meta"].setdefault(timestamp, {})
+            if count:
+                meta["count"] = int(count[count_name])
+            if raw:
+                meta["pulseId"] = record.get("pulse_id")
+
+    return {"curve": curve}
 
 
 def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: str, num_bins: int, useEventsIfBinCountTooLarge: bool, removeEmptyBins: bool, channel_entry: dict):
