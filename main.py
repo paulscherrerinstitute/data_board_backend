@@ -11,16 +11,31 @@ from routers import (
     dashboards
 )
 
+import logging
+
+logger = logging.getLogger("uvicorn")
+
 def is_mongo_connected():
     try:
         shared.mongo_client.admin.command("ping")
     except Exception:
         raise RuntimeError("MongoDB server is not reachable. Have you set the MONGO_HOST and MONGO_PORT environment variables correctly?")
 
+def configure_mongo_indices():
+    indexes = shared.mongo_db["dashboards"].index_information()
+    if not any("last_access" in idx.get("key", [])[0] for idx in indexes.values()):
+        shared.mongo_db["dashboards"].create_index([("last_access", 1)])
+        logger.info("Created index on last_access in MongoDB")
+    else:
+        logger.info("Index on last_access already exists in MongoDB")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Check mongodb connectivity
     is_mongo_connected()
+
+    # Make sure we have important indices
+    configure_mongo_indices()
 
     # Start the backend synchronizer in a separate thread
     backend_channel_thread = Thread(target=backend_synchronizer)
