@@ -46,7 +46,7 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
     entry = {}
     # If the channel name can be converted to an integer, treat it as seriesId.
     if channel_name.isdigit():
-        entry = next((item for item in shared.available_backend_channels if item['seriesId'] == int(channel_name)), None)
+        entry = next((item for item in shared.available_backend_channels if item['seriesId'] == channel_name), None)
     else:
         entry = next((item for item in shared.available_backend_channels if item['name'] == channel_name), None)
     # Don't verify channel if seriesId is used
