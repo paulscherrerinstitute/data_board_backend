@@ -1,5 +1,4 @@
 fastapi[standard]==0.115.12
-redis==5.2.1
 
 psi-datahub==1.1.2
 numpy==2.2.4
@@ -14,3 +13,5 @@ pytz==2025.2
 pandas==2.2.3
 matplotlib==3.10.1
 psutil==7.0.0
+pymongo==4.12.0
+jsonschema==4.23.0

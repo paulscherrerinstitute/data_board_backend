@@ -1,4 +1,4 @@
-- name: Stop and remove the running containers for frontend, backend and redis, also remove the images
+- name: Stop and remove the running containers for frontend, backend and MongoDB, also remove the images
   hosts: localhost
   connection: local
   become: true
@@ -7,11 +7,11 @@
       set_fact:
         BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_backend') }}"
         FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_frontend') }}"
-        REDIS_IMAGE: "{{ REDIS_IMAGE | default('redis') }}"
+        MONGO_IMAGE: "{{ MONGO_IMAGE | default('mongo') }}"
         BACKEND_PORT: "{{ BACKEND_PORT | default(8080) }}"
         BACKEND_HOST: "{{ BACKEND_HOST | default('http://' + ansible_default_ipv4.address) }}"
         FRONTEND_PORT: "{{ FRONTEND_PORT | default(80) }}"
-        REDIS_PORT: "{{ REDIS_PORT | default(6379) }}"
+        MONGO_PORT: "{{ MONGO_PORT | default(27017) }}"
 
     - name: Stop Docker container for frontend
       docker_container:
@@ -23,9 +23,9 @@
         name: data_board_backend
         state: stopped
 
-    - name: Stop Docker container for Redis
+    - name: Stop Docker container for MongoDB
       docker_container:
-        name: data_board_redis
+        name: data_board_mongo
         state: stopped
 
     - name: Remove Docker container for frontend
@@ -38,9 +38,9 @@
         name: data_board_backend
         state: absent
 
-    - name: Remove Docker container for Redis
+    - name: Remove Docker container for MongoDB
       docker_container:
-        name: data_board_redis
+        name: data_board_mongo
         state: absent
 
     - name: Remove Docker network
@@ -59,7 +59,7 @@
         name: "{{ BACKEND_IMAGE }}"
         state: absent
 
-    - name: Remove Docker image for Redis
+    - name: Remove Docker image for MongoDB
       docker_image:
-        name: "{{ REDIS_IMAGE }}"
+        name: "{{ MONGO_IMAGE }}"
         state: absent

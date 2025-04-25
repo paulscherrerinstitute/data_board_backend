@@ -1,20 +1,16 @@
 from os import getenv
-import redis
 from threading import Lock
+from pymongo import MongoClient
 
 class SharedVariables:
     def __init__(self):
-        self.redis_client = redis.StrictRedis(host=getenv("REDIS_HOST", "redis"), port=getenv("REDIS_PORT", 6379), db=0, decode_responses=True)
-        self.REDIS_IMAGE_STREAM = 'image_stream'
+        mongo_host = getenv("MONGO_HOST", "localhost")
+        mongo_port = int(getenv("MONGO_PORT", 27017))
+        mongo_db_name = getenv("MONGO_DB_NAME", "databoard")
 
-        # Channels to fetch: channel is the key and the last accessed time (secssinceepoch) is the value
-        self.active_channels = {'random.1|TEST': 1e20, 'random.2|TEST': 1e20}
-        self.active_channels_lock = Lock()
+        self.mongo_client = MongoClient(host=mongo_host, port=mongo_port)
+        self.mongo_db = self.mongo_client[mongo_db_name]
 
-        self.channel_store_time_seconds = 3600
-        self.max_channel_frequency = 100
-
-        # Recently accessed channels, doesnt invalidate, unlike active channels
         self.recent_channels = []
         self.recent_channels_lock = Lock()
 

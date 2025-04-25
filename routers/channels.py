@@ -7,6 +7,9 @@ from shared_resources.decorators import timeout
 from shared_resources.variables import shared_variables as shared
 from shared_resources.datahub_synchronizer import search_channels, get_curve_data, get_recent_channels
 
+import logging
+logger = logging.getLogger("uvicorn")
+
 router = APIRouter()
 
 @router.get("/search", tags=["channels"])
@@ -15,14 +18,19 @@ def search_channels_route(search_text: str = "", allow_cached_response = True):
     channels = []
     if search_text == "" and allow_cached_response:
         # Return all channels
-        channels = shared.available_backend_channels.copy()
+        channels = list(shared.available_backend_channels)
     else: 
         channels = search_channels(search_text=search_text.strip(), allow_cached_response=allow_cached_response)
+
     # To avoid precision loss in browsers, transmit seriresId as string
+    processed_channels = []
     for channel in channels:
-        if channel["seriesId"] and type(channel["seriesId"]) == int:
-            channel["seriesId"] = str(channel["seriesId"])
-    result = {"channels": channels}
+        channel_copy = channel.copy()
+        if isinstance(channel_copy.get("seriesId"), int):
+            channel_copy["seriesId"] = str(channel_copy["seriesId"])
+        processed_channels.append(channel_copy)
+    result = {"channels": processed_channels}
+    
     return JSONResponse(content=result, status_code=200)
 
 @router.get("/recent", tags=["channels"])
@@ -38,7 +46,7 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
     entry = {}
     # If the channel name can be converted to an integer, treat it as seriesId.
     if channel_name.isdigit():
-        entry = next((item for item in shared.available_backend_channels if item['seriesId'] == int(channel_name)), None)
+        entry = next((item for item in shared.available_backend_channels if item['seriesId'] == channel_name), None)
     else:
         entry = next((item for item in shared.available_backend_channels if item['name'] == channel_name), None)
     # Don't verify channel if seriesId is used
@@ -52,7 +60,8 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         raise HTTPException(status_code=400, detail="end_time is in the future, cannot request data for the future")
 
     try:
-        result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge, removeEmptyBins=removeEmptyBins,  entry=entry)
+        result = get_curve_data(channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend, num_bins=num_bins, useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge, removeEmptyBins=removeEmptyBins,  channel_entry=entry)
         return JSONResponse(content=result, status_code=200)
     except RuntimeError as e:
+        logger.error(f"Error in curve_data_route: {e}")
         raise HTTPException(status_code=500, detail="Error fetching data from backend")
