@@ -1,6 +1,5 @@
 - name: Stop and remove the running containers for frontend, backend and MongoDB, also remove the images
-  hosts: localhost
-  connection: local
+  hosts: all
   become: true
   tasks:
     - name: Set default values if variables are not defined

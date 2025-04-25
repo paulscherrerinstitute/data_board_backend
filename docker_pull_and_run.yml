@@ -1,6 +1,5 @@
 - name: Pull Docker images and run containers for frontend, backend, and MongoDB
-  hosts: localhost
-  connection: local
+  hosts: all
   become: true
   tasks:
     - name: Set default values if variables are not defined
