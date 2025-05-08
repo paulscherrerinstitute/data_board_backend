@@ -34,7 +34,7 @@ def search_channels(search_text = ".*", allow_cached_response = True):
         with Daqbuf(backend=None, parallel=True) as source:
             # Verboses gets us the plain response without any formatting, which would only slow everything down.
             source.verbose = True
-            result = source.search(search_text)
+            result = source.search(regex=search_text, case_sensitive=False)
             if result is not None:
                 matching_channels = [
                     {
