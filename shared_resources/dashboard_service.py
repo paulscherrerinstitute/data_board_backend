@@ -21,7 +21,7 @@ DASHBOARD_WHITELIST = set(filter(None, os.getenv("DASHBOARD_WHITELIST", "").spli
 
 # Dashboard validation
 DEFAULT_SCHEMA_BASE_URL = "https://raw.githubusercontent.com/paulscherrerinstitute/data_board_frontend/main/schema/"
-SCHEMA_PATH = os.getenv("SCHEMA_PATH", DEFAULT_SCHEMA_BASE_URL)
+SCHEMA_PATH = os.getenv("SCHEMA_PATH") or DEFAULT_SCHEMA_BASE_URL
 VALIDATE_DASHBOARD_SCHEMA = os.getenv("VALIDATE_DASHBOARD_SCHEMA", "true").lower() in ("1", "true", "yes", "on")
 VALIDATE_DASHBOARD_SIZE = os.getenv("VALIDATE_DASHBOARD_SIZE", "true").lower() in ("1", "true", "yes", "on")
 DASHBOARD_MAX_SINGLE_BYTES = int(os.getenv("DASHBOARD_MAX_SINGLE_BYTES", 10 * 1024**2))  # default 10MB per dashboard
