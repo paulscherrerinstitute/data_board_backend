@@ -52,6 +52,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(channels.router, prefix='/channels')
 app.include_router(dashboards.router, prefix="/dashboard")
+app.include_router(dashboards.maintenance_router, prefix="/maintenance/dashboard")
 
 # Allow requests from everywhere
 app.add_middleware(
@@ -65,3 +66,7 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"message": "Hello, World!"}
+
+@app.get("/health")
+def healthcheck():
+    return {"message": "Alive and Well!"}
