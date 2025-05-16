@@ -7,58 +7,40 @@
         BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_backend') }}"
         FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_frontend') }}"
         MONGO_IMAGE: "{{ MONGO_IMAGE | default('mongo') }}"
-        BACKEND_PORT: "{{ BACKEND_PORT | default(8080) }}"
-        BACKEND_HOST: "{{ BACKEND_HOST | default('http://' + ansible_default_ipv4.address) }}"
-        FRONTEND_PORT: "{{ FRONTEND_PORT | default(80) }}"
-        MONGO_PORT: "{{ MONGO_PORT | default(27017) }}"
 
-    - name: Stop Docker container for frontend
+    - name: Stop containers gracefully
       docker_container:
-        name: data_board_frontend
+        name: "{{ item }}"
         state: stopped
+      loop:
+        - data_board_frontend
+        - data_board_backend
+        - data_board_mongo
+      ignore_errors: yes
 
-    - name: Stop Docker container for backend
+    - name: Remove containers
       docker_container:
-        name: data_board_backend
-        state: stopped
-
-    - name: Stop Docker container for MongoDB
-      docker_container:
-        name: data_board_mongo
-        state: stopped
-
-    - name: Remove Docker container for frontend
-      docker_container:
-        name: data_board_frontend
+        name: "{{ item }}"
         state: absent
+      loop:
+        - data_board_frontend
+        - data_board_backend
+        - data_board_mongo
+      ignore_errors: yes
 
-    - name: Remove Docker container for backend
-      docker_container:
-        name: data_board_backend
-        state: absent
-
-    - name: Remove Docker container for MongoDB
-      docker_container:
-        name: data_board_mongo
-        state: absent
-
-    - name: Remove Docker network
+    - name: Remove network
       docker_network:
         name: data_board_network
         state: absent
         force: yes
+      ignore_errors: yes
 
-    - name: Remove Docker image for frontend
+    - name: Remove images
       docker_image:
-        name: "{{ FRONTEND_IMAGE }}"
+        name: "{{ item }}"
         state: absent
-
-    - name: Remove Docker image for backend
-      docker_image:
-        name: "{{ BACKEND_IMAGE }}"
-        state: absent
-
-    - name: Remove Docker image for MongoDB
-      docker_image:
-        name: "{{ MONGO_IMAGE }}"
-        state: absent
+      loop:
+        - "{{ FRONTEND_IMAGE }}"
+        - "{{ BACKEND_IMAGE }}"
+        - "{{ MONGO_IMAGE }}"
+      ignore_errors: yes

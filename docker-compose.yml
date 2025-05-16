@@ -1,22 +1,20 @@
 services:
   mongo:
     image: "${MONGO_IMAGE:-mongo:latest}"
-    ports:
-      - "${MONGO_PORT:-27017}:27017"
     environment:
       MONGO_INITDB_DATABASE: "${MONGO_DB_NAME:-databoard}"
     restart: unless-stopped
     networks:
       - data_board_network
+    volumes:
+      - mongo_data_volume:/data/db
 
   backend:
     image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend}"
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
     restart: unless-stopped
     environment:
       MONGO_HOST: "mongo"
-      MONGO_PORT: "${MONGO_PORT:-27017}"
+      MONGO_PORT: "27017"
       MONGO_DB_NAME: "${MONGO_DB_NAME:-databoard}"
       SCHEMA_PATH: "${SCHEMA_PATH:-}"
     networks:
@@ -28,10 +26,14 @@ services:
       - "${FRONTEND_PORT:-80}:80"
     restart: unless-stopped
     environment:
-      DATA_BOARD_PUBLIC_BACKEND_URL: "${BACKEND_HOST:-http://localhost}:${BACKEND_PORT:-8080}"
+      DATA_BOARD_INTERNAL_BACKEND_URL: "http://backend:8080"
+      DATA_BOARD_PUBLIC_BACKEND_URL: "/api"
     networks:
       - data_board_network
 
 networks:
   data_board_network:
     driver: bridge
+
+volumes:
+  mongo_data_volume:

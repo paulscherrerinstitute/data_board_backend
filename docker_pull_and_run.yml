@@ -1,16 +1,15 @@
 - name: Pull Docker images and run containers for frontend, backend, and MongoDB
   hosts: all
   become: true
+  vars:
+    mongo_data_volume: mongo_data
   tasks:
     - name: Set default values if variables are not defined
       set_fact:
         BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_backend') }}"
         FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_frontend') }}"
         MONGO_IMAGE: "{{ MONGO_IMAGE | default('mongo') }}"
-        BACKEND_PORT: "{{ BACKEND_PORT | default(8080) }}"
-        BACKEND_HOST: "{{ BACKEND_HOST | default('http://' + ansible_default_ipv4.address) }}"
         FRONTEND_PORT: "{{ FRONTEND_PORT | default(80) }}"
-        MONGO_PORT: "{{ MONGO_PORT | default(27017) }}"
         MONGO_DB_NAME: "{{ MONGO_DB_NAME | default('databoard') }}"
 
     - name: Create Docker network
@@ -18,80 +17,92 @@
         name: data_board_network
         driver: bridge
 
-    - name: Pull Docker image for MongoDB from registry
+    - name: Create Docker volume for MongoDB data persistence
+      docker_volume:
+        name: "{{ mongo_data_volume }}"
+
+    - name: Try to pull MongoDB image (ignore if not found upstream)
       docker_image:
         name: "{{ MONGO_IMAGE }}"
         source: pull
+        pull: yes
+      register: mongo_pull
+      ignore_errors: yes
 
-    - name: Run Docker container for MongoDB with custom config inline
+    - name: Ensure MongoDB image exists locally if pull failed
+      docker_image:
+        name: "{{ MONGO_IMAGE }}"
+        source: local
+        state: present
+      when: mongo_pull is failed
+
+    - name: Run MongoDB container
       docker_container:
         name: data_board_mongo
         image: "{{ MONGO_IMAGE }}"
         state: started
         restart_policy: unless-stopped
-        ports:
-          - "{{ MONGO_PORT }}:27017"
-        detach: true
-        image_name_mismatch: recreate
         env:
           MONGO_INITDB_DATABASE: "{{ MONGO_DB_NAME }}"
+        networks:
+          - name: data_board_network
+        volumes:
+          - "{{ mongo_data_volume }}:/data/db"
 
-    - name: Add MongoDB container to Docker network
-      docker_network:
-        name: data_board_network
-        connected:
-          - data_board_mongo
-        appends: yes
-
-    - name: Pull Docker image for backend from registry
+    - name: Try to pull backend image (ignore if not found upstream)
       docker_image:
         name: "{{ BACKEND_IMAGE }}"
         source: pull
+        pull: yes
+      register: backend_pull
+      ignore_errors: yes
 
-    - name: Run Docker container for backend
+    - name: Ensure backend image exists locally if pull failed
+      docker_image:
+        name: "{{ BACKEND_IMAGE }}"
+        source: local
+        state: present
+      when: backend_pull is failed
+
+    - name: Run backend container
       docker_container:
         name: data_board_backend
         image: "{{ BACKEND_IMAGE }}"
         state: started
         restart_policy: unless-stopped
-        ports:
-          - "{{ BACKEND_PORT }}:8080"
-        detach: true
         env:
           MONGO_HOST: "data_board_mongo"
-          MONGO_PORT: "{{ MONGO_PORT }}"
+          MONGO_PORT: "27017"
+          MONGO_DB_NAME: "{{ MONGO_DB_NAME }}"
           SCHEMA_PATH: "{{ SCHEMA_PATH | default(omit) }}"
+        networks:
+          - name: data_board_network
 
-        image_name_mismatch: recreate
-
-    - name: Add backend container to Docker network
-      docker_network:
-        name: data_board_network
-        connected:
-          - data_board_backend
-        appends: yes
-
-    - name: Pull Docker image for frontend from registry
+    - name: Try to pull frontend image (ignore if not found upstream)
       docker_image:
         name: "{{ FRONTEND_IMAGE }}"
         source: pull
+        pull: yes
+      register: frontend_pull
+      ignore_errors: yes
 
-    - name: Run Docker container for frontend
+    - name: Ensure frontend image exists locally if pull failed
+      docker_image:
+        name: "{{ FRONTEND_IMAGE }}"
+        source: local
+        state: present
+      when: frontend_pull is failed
+
+    - name: Run frontend container
       docker_container:
         name: data_board_frontend
         image: "{{ FRONTEND_IMAGE }}"
         state: started
         restart_policy: unless-stopped
+        env:
+          DATA_BOARD_INTERNAL_BACKEND_URL: "http://data_board_backend:8080"
+          DATA_BOARD_PUBLIC_BACKEND_URL: "/api"
         ports:
           - "{{ FRONTEND_PORT }}:80"
-        detach: true
-        env:
-          DATA_BOARD_PUBLIC_BACKEND_URL: "{{ BACKEND_HOST }}:{{ BACKEND_PORT }}"
-        image_name_mismatch: recreate
-
-    - name: Add frontend container to Docker network
-      docker_network:
-        name: data_board_network
-        connected:
-          - data_board_frontend
-        appends: yes
+        networks:
+          - name: data_board_network

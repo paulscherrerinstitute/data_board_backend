@@ -7,7 +7,7 @@ import requests
 import os
 import uuid
 from datetime import datetime, timezone
-from shared_resources.exceptions import DashboardSizeError, DashboardValidationError
+from shared_resources.exceptions import DashboardSizeError, DashboardValidationError, DashboardProtectedError
 from shared_resources.variables import shared_variables as shared
 import logging
 
@@ -17,11 +17,10 @@ logger = logging.getLogger("uvicorn")
 DASHBOARD_MAX_TOTAL_STORAGE_BYTES = int(os.getenv("DASHBOARD_MAX_TOTAL_STORAGE_BYTES", 10 * 1024**3))  # default 10GB total
 DASHBOARD_EVICTION_THRESHOLD = float(os.getenv("DASHBOARD_EVICTION_THRESHOLD", 0.95))  # start evicting at 95% of total
 DASHBOARD_TARGET_UTILIZATION = float(os.getenv("DASHBOARD_TARGET_UTILIZATION", 0.60))  # reduce down to 60% of total
-DASHBOARD_WHITELIST = set(filter(None, os.getenv("DASHBOARD_WHITELIST", "").split(",")))
 
 # Dashboard validation
 DEFAULT_SCHEMA_BASE_URL = "https://raw.githubusercontent.com/paulscherrerinstitute/data_board_frontend/main/schema/"
-SCHEMA_PATH = os.getenv("SCHEMA_PATH", DEFAULT_SCHEMA_BASE_URL)
+SCHEMA_PATH = os.getenv("SCHEMA_PATH") or DEFAULT_SCHEMA_BASE_URL
 VALIDATE_DASHBOARD_SCHEMA = os.getenv("VALIDATE_DASHBOARD_SCHEMA", "true").lower() in ("1", "true", "yes", "on")
 VALIDATE_DASHBOARD_SIZE = os.getenv("VALIDATE_DASHBOARD_SIZE", "true").lower() in ("1", "true", "yes", "on")
 DASHBOARD_MAX_SINGLE_BYTES = int(os.getenv("DASHBOARD_MAX_SINGLE_BYTES", 10 * 1024**2))  # default 10MB per dashboard
@@ -63,6 +62,13 @@ def validate_dashboard(dashboard: Dict[str, Any]) -> int:
     check_dashboard_schema(dashboard)
     return check_dashboard_size(dashboard)
 
+def check_dashboard_protection(dashboard_id):
+    existing = shared.mongo_db["dashboards"].find_one({"_id": dashboard_id})
+    if not existing:
+        return None
+    if existing.get("protected"):
+        raise DashboardProtectedError(f"Dashboard {dashboard_id} is protected and cannot be changed.")
+
 def enforce_storage_limits() -> None:
     coll = shared.mongo_db["dashboards"]
 
@@ -78,7 +84,7 @@ def enforce_storage_limits() -> None:
 
     # Iterate over non-whitelisted dashboards sorted by oldest access time
     for doc in coll.find(
-        {"_id": {"$nin": list(DASHBOARD_WHITELIST)}},
+        {"whitelisted": {"$ne": True}},
         sort=[("last_access", 1)],
         projection={"_size": 1}
     ):
@@ -89,6 +95,24 @@ def enforce_storage_limits() -> None:
         coll.delete_one({"_id": doc["_id"]})
         total -= size
         logger.info(f"Evicted {doc['_id']}, freed {size}, total now {total}")
+
+def get_record(dashboard_id: str) -> Optional[Dict[str, Any]]:
+    doc = shared.mongo_db["dashboards"].find_one({"_id": dashboard_id})
+    return doc if doc else None
+
+def whitelist_dashboard(dashboard_id: str, whitelisted: bool = True) -> bool:
+    result = shared.mongo_db["dashboards"].update_one(
+        {"_id": dashboard_id},
+        {"$set": {"whitelisted": whitelisted}}
+    )
+    return result.matched_count == 1
+
+def protect_dashboard(dashboard_id: str, protected: bool = True) -> bool:
+    result = shared.mongo_db["dashboards"].update_one(
+        {"_id": dashboard_id},
+        {"$set": {"protected": protected}}
+    )
+    return result.matched_count == 1
 
 def create_dashboard(dashboard: Dict[str, Any]) -> Dict[str, Any]:
     size = validate_dashboard(dashboard)
@@ -111,6 +135,7 @@ def get_dashboard(dashboard_id: str) -> Optional[Dict[str, Any]]:
     return {"id": dashboard_id, **doc.get("dashboard", {})} if doc else None
 
 def update_dashboard(dashboard_id: str, dashboard: Dict[str, Any]) -> Dict[str, Any]:
+    check_dashboard_protection(dashboard_id)
     size = validate_dashboard(dashboard)
     updated = shared.mongo_db["dashboards"].find_one_and_update(
         {"_id": dashboard_id},
@@ -123,5 +148,6 @@ def update_dashboard(dashboard_id: str, dashboard: Dict[str, Any]) -> Dict[str, 
     return None
 
 def delete_dashboard(dashboard_id: str) -> Optional[Dict[str, Any]]:
+    check_dashboard_protection(dashboard_id)
     doc = shared.mongo_db["dashboards"].find_one_and_delete({"_id": dashboard_id})
     return {"id": dashboard_id, **doc.get("dashboard", {})} if doc else None
