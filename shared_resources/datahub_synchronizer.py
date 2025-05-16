@@ -8,6 +8,9 @@ from shared_resources.variables import shared_variables as shared
 import logging
 logger = logging.getLogger("uvicorn")
 
+def dict_in_list(d, lst):
+    return any(json.dumps(d, sort_keys=True) == json.dumps(x, sort_keys=True) for x in lst)
+
 def search_channels(search_text = ".*", allow_cached_response = True):
     matching_channels = []
     cache_miss = False
@@ -15,7 +18,7 @@ def search_channels(search_text = ".*", allow_cached_response = True):
         with shared.available_backend_channels_lock:
             cached_channel_list = list(shared.available_backend_channels)
         for channel in cached_channel_list:
-            if search_text.lower() in channel["name"]:
+            if re.search(search_text, channel["name"], re.IGNORECASE):
                 matching_channels.append({
                     "backend": str(channel.get("backend", "")),
                     "name": str(channel.get("name", "")),
@@ -50,9 +53,12 @@ def search_channels(search_text = ".*", allow_cached_response = True):
                     for channel in result.get("channels", [])
                 ]
 
-    # Initiate a resync of available channels in case a new one was added
+    # In case uncached channels were discovered, add them to the cache
     if matching_channels and cache_miss:
-        Thread(target=cache_backend_channels).start()
+        for channel in matching_channels:
+            if not dict_in_list(channel, shared.available_backend_channels):
+                with shared.available_backend_channels_lock:
+                    shared.available_backend_channels.append(channel)
 
     return matching_channels
 
@@ -181,11 +187,11 @@ def cache_backend_channels():
     shared.backend_sync_active = False
 
 def backend_synchronizer():
-    one_hour_in_seconds = 3600
+    one_week_in_seconds = 604_800
     while True:
         try:
             cache_backend_channels()
-            time.sleep(one_hour_in_seconds)
+            time.sleep(one_week_in_seconds)
         except Exception as e:
             logger.error(f"Error in backend_synchronizer: {e}")
             time.sleep(30)
