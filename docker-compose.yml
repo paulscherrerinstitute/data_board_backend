@@ -6,6 +6,8 @@ services:
     restart: unless-stopped
     networks:
       - data_board_network
+    volumes:
+      - mongo_data_volume:/data/db
 
   backend:
     image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend}"
@@ -32,3 +34,6 @@ services:
 networks:
   data_board_network:
     driver: bridge
+
+volumes:
+  mongo_data_volume:
