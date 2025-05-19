@@ -1,8 +1,7 @@
 from datahub import *
 
+import json
 import time, datetime
-from threading import Thread
-
 from shared_resources.variables import shared_variables as shared
 
 import logging
@@ -91,7 +90,7 @@ def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw
 
         # value
         value = record[channel_name]
-        curve[channel_name][timestamp] = value.id if isinstance(value, datahub.Enum) else float(value)
+        curve[channel_name][timestamp] = value.id if isinstance(value, Enum) else float(value)
 
         # min
         if timestamp in min_map:
@@ -124,8 +123,8 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
 
     query = {
         "channels": [channel_name],
-        "start": datetime.datetime.fromtimestamp(begin_time / 1000, timezone.utc).isoformat(sep=' ', timespec='milliseconds'),
-        "end": datetime.datetime.fromtimestamp(end_time / 1000, timezone.utc).isoformat(sep=' ', timespec='milliseconds')
+        "start": datetime.datetime.fromtimestamp(begin_time / 1000, datetime.timezone.utc).isoformat(sep=' ', timespec='milliseconds'),
+        "end": datetime.datetime.fromtimestamp(end_time / 1000, datetime.timezone.utc).isoformat(sep=' ', timespec='milliseconds')
     }
 
     if num_bins > 0:
@@ -142,7 +141,7 @@ def get_curve_data(channel_name: str, begin_time: int, end_time: int, backend: s
             source.verbose = True
             daqbuf_data = table.data
 
-            raw = False
+            raw = num_bins <= 0
             if daqbuf_data is not None and len(daqbuf_data) > 0:
                 if useEventsIfBinCountTooLarge and channel_name + " count" in daqbuf_data:
                     actualData = 0

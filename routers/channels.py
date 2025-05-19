@@ -1,6 +1,6 @@
+import time
 from fastapi import APIRouter, HTTPException
 
-from datahub import *
 from fastapi.responses import JSONResponse
 
 from shared_resources.decorators import timeout
