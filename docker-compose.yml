@@ -1,6 +1,7 @@
 services:
   mongo:
     image: "${MONGO_IMAGE:-mongo:latest}"
+    pull_policy: always
     environment:
       MONGO_INITDB_DATABASE: "${MONGO_DB_NAME:-databoard}"
     restart: unless-stopped
@@ -10,7 +11,8 @@ services:
       - mongo_data_volume:/data/db
 
   backend:
-    image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend}"
+    image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend:latest}"
+    pull_policy: always
     restart: unless-stopped
     environment:
       MONGO_HOST: "mongo"
@@ -21,7 +23,8 @@ services:
       - data_board_network
 
   frontend:
-    image: "${FRONTEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_frontend}"
+    image: "${FRONTEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_frontend:latest}"
+    pull_policy: always
     ports:
       - "${FRONTEND_PORT:-80}:80"
     restart: unless-stopped

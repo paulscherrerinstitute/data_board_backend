@@ -6,9 +6,9 @@
   tasks:
     - name: Set default values if variables are not defined
       set_fact:
-        BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_backend') }}"
-        FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_frontend') }}"
-        MONGO_IMAGE: "{{ MONGO_IMAGE | default('mongo') }}"
+        BACKEND_IMAGE: "{{ BACKEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_backend:latest') }}"
+        FRONTEND_IMAGE: "{{ FRONTEND_IMAGE | default('ghcr.io/paulscherrerinstitute/data_board_frontend:latest') }}"
+        MONGO_IMAGE: "{{ MONGO_IMAGE | default('mongo:latest') }}"
         FRONTEND_PORT: "{{ FRONTEND_PORT | default(80) }}"
         MONGO_DB_NAME: "{{ MONGO_DB_NAME | default('databoard') }}"
 
@@ -25,7 +25,7 @@
       docker_image:
         name: "{{ MONGO_IMAGE }}"
         source: pull
-        pull: yes
+        force_source: yes
       register: mongo_pull
       ignore_errors: yes
 
@@ -53,7 +53,7 @@
       docker_image:
         name: "{{ BACKEND_IMAGE }}"
         source: pull
-        pull: yes
+        force_source: yes
       register: backend_pull
       ignore_errors: yes
 
@@ -82,7 +82,7 @@
       docker_image:
         name: "{{ FRONTEND_IMAGE }}"
         source: pull
-        pull: yes
+        force_source: yes
       register: frontend_pull
       ignore_errors: yes
 
