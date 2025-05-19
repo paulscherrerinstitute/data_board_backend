@@ -51,7 +51,7 @@ def curve_data_route(channel_name: str, begin_time: int, end_time: int, backend:
         entry = next((item for item in shared.available_backend_channels if item['name'] == channel_name), None)
     # Don't verify channel if seriesId is used
     if not channel_name.isdigit() and not search_channels(channel_name.strip()):
-        raise HTTPException(status_code=404, detail="Channel does not exist in backend")
+        raise HTTPException(status_code=404, detail="Channel not found in backend")
     if begin_time * end_time == 0:
         raise HTTPException(status_code=400, detail="begin_time or end_time is invalid, must be valid unix time (seconds)")
     if begin_time > end_time:
