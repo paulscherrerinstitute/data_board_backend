@@ -34,7 +34,7 @@ This documentation assumes you install the dependencies in a [venv](https://docs
 
 #### Pre-Commit Hooks
 
-If you want to push changes, you need to enable pre-commit hooks. After installing the neccessary [dependencies](#dependencies), install the hooks using `pre-commit install`. Now, the pre-commit hooks defined in [.pre-commit-config.yaml](.pre-commit-config.yaml) are executed by Git upon committing, blocking a commit if any of them fail.
+If you want to push changes, you need to enable pre-commit hooks. After installing the necessary [dependencies](#dependencies), install the hooks using `pre-commit install`. Now, the pre-commit hooks defined in [.pre-commit-config.yaml](.pre-commit-config.yaml) are executed by Git upon committing, blocking a commit if any of them fail.
 
 Some of those hooks automatically update the changed files to make their tests pass. In those cases, the respective hook fails but indicates that it changed some files. You then need to manually verify those changes and add them to Git and commit again. Detected issues that cannot be auto-resolved will simply be displayed, and you will need to fix them yourself.
 
