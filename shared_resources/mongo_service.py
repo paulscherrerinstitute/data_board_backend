@@ -5,7 +5,7 @@ from shared_resources.variables import shared_variables as shared
 logger = logging.getLogger("uvicorn")
 
 
-def is_mongo_connected():
+def check_mongo_connected():
     try:
         shared.mongo_client.admin.command("ping")
     except Exception:

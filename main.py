@@ -8,7 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from routers import channels, dashboards, root
 from shared_resources.datahub_synchronizer import backend_synchronizer
-from shared_resources.mongo_service import configure_mongo_indices, is_mongo_connected
+from shared_resources.mongo_service import (
+    check_mongo_connected,
+    configure_mongo_indices,
+)
 
 logger = logging.getLogger("uvicorn")
 
@@ -16,7 +19,7 @@ logger = logging.getLogger("uvicorn")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Check mongodb connectivity
-    is_mongo_connected()
+    check_mongo_connected()
 
     # Make sure we have important indices
     configure_mongo_indices()
