@@ -14,10 +14,10 @@ from shared_resources.variables import shared_variables as shared
 
 logger = logging.getLogger("uvicorn")
 
-router = APIRouter()
+router = APIRouter(tags=["channels"])
 
 
-@router.get("/search", tags=["channels"])
+@router.get("/search", description="Searches the cache for a channel. If not found in cache, archivers will be queried")
 @timeout(15)
 def search_channels_route(search_text: str = "", allow_cached_response=True):
     channels = []
@@ -39,7 +39,7 @@ def search_channels_route(search_text: str = "", allow_cached_response=True):
     return JSONResponse(content=result, status_code=200)
 
 
-@router.get("/recent", tags=["channels"])
+@router.get("/recent", description="Returns channels with recently accessed data")
 @timeout(10)
 def recent_channels_route():
     channels = get_recent_channels()
@@ -47,7 +47,7 @@ def recent_channels_route():
     return JSONResponse(content=result, status_code=200)
 
 
-@router.get("/curve", tags=["channels"])
+@router.get("/curve", description="Returns channel data for the specified parameters")
 @timeout(30)
 def curve_data_route(
     channel_name: str,

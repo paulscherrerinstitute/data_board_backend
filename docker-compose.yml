@@ -17,6 +17,7 @@ services:
       MONGO_PORT: "27017"
       MONGO_DB_NAME: "${MONGO_DB_NAME:-databoard}"
       SCHEMA_PATH: "${SCHEMA_PATH:-}"
+      ROOT_PATH: "/api"
     networks:
       - data_board_network
 

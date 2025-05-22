@@ -1,39 +1,25 @@
 import logging
 from contextlib import asynccontextmanager
+from os import getenv
 from threading import Thread
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import channels, dashboards
+from routers import channels, dashboards, root
 from shared_resources.datahub_synchronizer import backend_synchronizer
-from shared_resources.variables import shared_variables as shared
+from shared_resources.mongo_service import (
+    check_mongo_connected,
+    configure_mongo_indices,
+)
 
 logger = logging.getLogger("uvicorn")
-
-
-def is_mongo_connected():
-    try:
-        shared.mongo_client.admin.command("ping")
-    except Exception:
-        raise RuntimeError(
-            "Cannot reach MongoDB server. Have you set the MONGO_HOST and MONGO_PORT environment variables correctly?"
-        ) from None
-
-
-def configure_mongo_indices():
-    indexes = shared.mongo_db["dashboards"].index_information()
-    if not any("last_access" in idx.get("key", [])[0] for idx in indexes.values()):
-        shared.mongo_db["dashboards"].create_index([("last_access", 1)])
-        logger.info("Created index on last_access in MongoDB")
-    else:
-        logger.info("Index on last_access already exists in MongoDB")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Check mongodb connectivity
-    is_mongo_connected()
+    check_mongo_connected()
 
     # Make sure we have important indices
     configure_mongo_indices()
@@ -50,8 +36,18 @@ async def lifespan(app: FastAPI):
     backend_channel_thread.join(0)
 
 
-app = FastAPI(lifespan=lifespan)
+tags_metadata = [
+    {
+        "name": "maintenance",
+        "description": "Only accessible within the docker network.",
+    }
+]
 
+root_path = getenv("ROOT_PATH", "/")
+
+app = FastAPI(lifespan=lifespan, openapi_tags=tags_metadata, root_path=root_path)
+
+app.include_router(root.router)
 app.include_router(channels.router, prefix="/channels")
 app.include_router(dashboards.router, prefix="/dashboard")
 app.include_router(dashboards.maintenance_router, prefix="/maintenance/dashboard")
@@ -64,13 +60,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.get("/")
-def root():
-    return {"message": "Hello, World!"}
-
-
-@app.get("/health")
-def healthcheck():
-    return {"message": "Alive and Well!"}
