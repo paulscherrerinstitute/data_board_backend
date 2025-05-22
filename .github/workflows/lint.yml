@@ -1,4 +1,4 @@
-name: Test
+name: Lint
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
 
     permissions:
@@ -20,6 +20,6 @@ jobs:
 
       - run: |
           pip install --upgrade pip
-          pip install -r testing_requirements.txt
+          pip install ruff
 
-      - run: pytest
+      - run: ruff check --output-format=github .

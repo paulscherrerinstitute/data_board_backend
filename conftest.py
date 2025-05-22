@@ -1,24 +1,27 @@
 import importlib.util
 import os
+import socket
 import sys
 import time
-import socket
+
 import pytest
-from testcontainers.core.container import DockerContainer
-from pymongo import MongoClient
 from fastapi.testclient import TestClient
+from pymongo import MongoClient
+from testcontainers.core.container import DockerContainer
+
 
 def get_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("", 0))
         return s.getsockname()[1]
 
+
 @pytest.fixture(scope="session")
 def mongo_container():
     host_port = get_free_port()
     c = (
         DockerContainer("mongo:6.0")
-        .with_exposed_ports(27017) 
+        .with_exposed_ports(27017)
         .with_bind_ports(27017, host_port)
         .with_command("mongod --bind_ip_all --noauth")
     )
@@ -42,6 +45,7 @@ def mongo_container():
     yield host, host_port
     c.stop()
 
+
 @pytest.fixture()
 def client(mongo_container, monkeypatch):
     host, port = mongo_container
@@ -56,5 +60,6 @@ def client(mongo_container, monkeypatch):
     sys.modules["datahub"] = mock_datahub
 
     import main
+
     client = TestClient(main.app)
     yield client
