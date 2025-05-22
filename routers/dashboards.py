@@ -45,7 +45,7 @@ def protect_dashboard_route(id: str):
     return {"message": f"Dashboard {id} protected and whitelisted"}
 
 
-@maintenance_router.delete("/{id}/protect", description="Makes dashboard writable again, doesnt change whitelisting")
+@maintenance_router.delete("/{id}/protect", description="Makes dashboard writable again, doesn't change whitelisting")
 def unprotect_dashboard_route(id: str):
     if not dashboard_service.protect_dashboard(id, False):
         raise HTTPException(status_code=404, detail="Dashboard not found")
