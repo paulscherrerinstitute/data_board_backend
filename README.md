@@ -5,7 +5,7 @@
 
 # Data Board Backend
 
-This is the backend for the Data Board project. It is a FastAPI application written in Python that provides routes for the [Data Board Frontend](https://github.com/paulscherrerinstitute/data_board_frontend).
+This is the backend for the Data Board project. It is a FastAPI application written in Python that provides routes for the [Data Board Frontend](https://github.com/paulscherrerinstitute/data_board_frontend). It utilizes the [datahub library](https://github.com/paulscherrerinstitute/datahub) to get data from [data-api (v4)](https://data-api.psi.ch/api/4/docs/index.html).
 
 ---
 
@@ -82,6 +82,9 @@ You can configure the application using the following environment variables:
 
 - `ROOT_PATH`  
   Root path under which the backend is reachable. Needs to be configured if running behind proxy. Defaults to `"/"`.
+
+- `DAQBUF_DEFAULT_URL`  
+  Base URL used by DataHub for requests to [data-api](https://data-api.psi.ch/api/4/docs/index.html). Defaults to `"https://data-api.psi.ch/api/4"`.
 
 There may be additional possibilities to configure [DataHub](https://github.com/paulscherrerinstitute/datahub/blob/main/Readme.md).
 
