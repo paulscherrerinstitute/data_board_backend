@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir --progress-bar off -r requirements.txt
 COPY main.py .
 COPY shared_resources/ shared_resources/
 COPY routers/ routers/
-COPY migrate_whitelisted_dashboard.sh .
-RUN chmod +x migrate_whitelisted_dashboard.sh
+COPY migrate_whitelisted_dashboards.sh .
+RUN chmod +x migrate_whitelisted_dashboards.sh
 RUN chown -R databoard:databoard /app
 
 EXPOSE 8080

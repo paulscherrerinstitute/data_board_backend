@@ -12,10 +12,10 @@ from shared_resources.exceptions import (
 )
 
 router = APIRouter(tags=["dashboards"])
-maintenance_router = APIRouter(tags=["dashboards_maintenance"])
+maintenance_router = APIRouter(tags=["dashboards", "maintenance"])
 
 
-@maintenance_router.get("/{id}")
+@maintenance_router.get("/{id}", description="Returns the full mongodb entry as JSON")
 def get_full_record_route(id: str):
     result = dashboard_service.get_record(id)
     if result is None:
@@ -23,21 +23,21 @@ def get_full_record_route(id: str):
     return ORJSONResponse(content=result, status_code=200)
 
 
-@maintenance_router.post("/{id}/whitelist")
+@maintenance_router.post("/{id}/whitelist", description="Disables auto-deletion when storage is low")
 def whitelist_dashboard_route(id: str):
     if not dashboard_service.whitelist_dashboard(id, True):
         raise HTTPException(status_code=404, detail="Dashboard not found")
     return {"message": f"Dashboard {id} whitelisted"}
 
 
-@maintenance_router.delete("/{id}/whitelist")
+@maintenance_router.delete("/{id}/whitelist", description="Enables auto-deletion when storage is low")
 def unwhitelist_dashboard_route(id: str):
     if not dashboard_service.whitelist_dashboard(id, False):
         raise HTTPException(status_code=404, detail="Dashboard not found")
     return {"message": f"Dashboard {id} unwhitelisted"}
 
 
-@maintenance_router.post("/{id}/protect")
+@maintenance_router.post("/{id}/protect", description="Makes dashboard read-only and whitelists it")
 def protect_dashboard_route(id: str):
     if not dashboard_service.protect_dashboard(id, True):
         raise HTTPException(status_code=404, detail="Dashboard not found")
@@ -45,7 +45,7 @@ def protect_dashboard_route(id: str):
     return {"message": f"Dashboard {id} protected and whitelisted"}
 
 
-@maintenance_router.delete("/{id}/protect")
+@maintenance_router.delete("/{id}/protect", description="Makes dashboard writable again, doesnt change whitelisting")
 def unprotect_dashboard_route(id: str):
     if not dashboard_service.protect_dashboard(id, False):
         raise HTTPException(status_code=404, detail="Dashboard not found")
