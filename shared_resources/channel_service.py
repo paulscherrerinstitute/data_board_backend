@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 
 from datahub import Daqbuf, Enum, Table, re
@@ -7,10 +6,6 @@ from datahub import Daqbuf, Enum, Table, re
 from shared_resources.variables import shared_variables as shared
 
 logger = logging.getLogger("uvicorn")
-
-
-def dict_in_list(d, lst):
-    return any(json.dumps(d, sort_keys=True) == json.dumps(x, sort_keys=True) for x in lst)
 
 
 def search_channels(search_text=".*", allow_cached_response=True):
@@ -59,7 +54,7 @@ def search_channels(search_text=".*", allow_cached_response=True):
     # In case uncached channels were discovered, add them to the cache
     if matching_channels and cache_miss:
         for channel in matching_channels:
-            if not dict_in_list(channel, shared.available_backend_channels):
+            if not any(channel == existing for existing in shared.available_backend_channels):
                 with shared.available_backend_channels_lock:
                     shared.available_backend_channels.append(channel)
 
