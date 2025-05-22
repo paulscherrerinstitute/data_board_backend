@@ -1,5 +1,7 @@
 from mocks.mock_datahub import MOCK_CHANNELS
 
+from shared_resources.variables import shared_variables as shared
+
 
 def test_channels_search_all(client):
     response = client.get("/channels/search", params={"search_text": ".*", "allow_cached_response": False})
@@ -128,3 +130,24 @@ def test_curve_data_binned(client):
         },
     }
     assert response.json() == expected
+
+
+def test_raw_link_success_default_base(client):
+    params = {"channel_name": "test-channel", "begin_time": 10, "end_time": 20}
+    resp = client.get("/channels/raw-link", params=params)
+    assert resp.status_code == 200
+
+    expected = (
+        "https://data-api.psi.ch/api/4/events?backend=sf-databuffer&channelName=test-channel&begDate=10&endDate=20"
+    )
+    assert resp.json() == expected
+
+
+def test_raw_link_success_custom_base(monkeypatch, client):
+    monkeypatch.setattr(shared, "DATA_API_BASE_URL", "https://custom-url/api")
+    params = {"channel_name": "foo", "begin_time": 123, "end_time": 456}
+    resp = client.get("/channels/raw-link", params=params)
+    assert resp.status_code == 200
+
+    expected = "https://custom-url/api/events?backend=sf-databuffer&channelName=foo&begDate=123&endDate=456"
+    assert resp.json() == expected
