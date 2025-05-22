@@ -1,0 +1,13 @@
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C"]
+fixable = ["ALL"]
+
+[tool.autoflake]
+remove-all-unused-imports = true
+ignore-init-module-imports = true

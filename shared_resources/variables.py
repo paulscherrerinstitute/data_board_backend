@@ -1,6 +1,8 @@
 from os import getenv
 from threading import Lock
+
 from pymongo import MongoClient
+
 
 class SharedVariables:
     def __init__(self):
@@ -19,5 +21,6 @@ class SharedVariables:
         self.available_backend_channels_lock = Lock()
 
         self.backend_sync_active = False
+
 
 shared_variables = SharedVariables()

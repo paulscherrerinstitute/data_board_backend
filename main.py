@@ -1,25 +1,25 @@
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from threading import Thread
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from routers import channels, dashboards
 from shared_resources.datahub_synchronizer import backend_synchronizer
 from shared_resources.variables import shared_variables as shared
 
-from routers import (
-    channels,
-    dashboards
-)
-
-import logging
-
 logger = logging.getLogger("uvicorn")
+
 
 def is_mongo_connected():
     try:
         shared.mongo_client.admin.command("ping")
     except Exception:
-        raise RuntimeError("MongoDB server is not reachable. Have you set the MONGO_HOST and MONGO_PORT environment variables correctly?")
+        raise RuntimeError(
+            "Cannot reach MongoDB server. Have you set the MONGO_HOST and MONGO_PORT environment variables correctly?"
+        ) from None
+
 
 def configure_mongo_indices():
     indexes = shared.mongo_db["dashboards"].index_information()
@@ -28,6 +28,7 @@ def configure_mongo_indices():
         logger.info("Created index on last_access in MongoDB")
     else:
         logger.info("Index on last_access already exists in MongoDB")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,16 +42,17 @@ async def lifespan(app: FastAPI):
     backend_channel_thread = Thread(target=backend_synchronizer)
     backend_channel_thread.daemon = True
     backend_channel_thread.start()
-    
+
     # Execute app
     yield
 
     # Stop backend synchronizer
     backend_channel_thread.join(0)
 
+
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(channels.router, prefix='/channels')
+app.include_router(channels.router, prefix="/channels")
 app.include_router(dashboards.router, prefix="/dashboard")
 app.include_router(dashboards.maintenance_router, prefix="/maintenance/dashboard")
 
@@ -58,14 +60,16 @@ app.include_router(dashboards.maintenance_router, prefix="/maintenance/dashboard
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-	allow_credentials=True,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)   
+)
+
 
 @app.get("/")
 def root():
     return {"message": "Hello, World!"}
+
 
 @app.get("/health")
 def healthcheck():

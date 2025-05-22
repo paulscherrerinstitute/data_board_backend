@@ -1,18 +1,17 @@
 name: Auto Release
 
 on:
-    push:
-        tags:
-            - 'v*'
+  push:
+    tags:
+      - "v*"
 
 jobs:
-    create-release:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-            - name: Release
-              uses: softprops/action-gh-release@v2
-
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Release
+        uses: softprops/action-gh-release@v2
