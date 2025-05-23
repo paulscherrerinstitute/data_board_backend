@@ -1,6 +1,5 @@
 import datetime
 import logging
-from urllib.parse import urlencode
 
 from datahub import Daqbuf, Enum, Table, re
 
@@ -220,7 +219,9 @@ def get_recent_channels():
     return shared.recent_channels
 
 
+"""
 def get_raw_data_link(channel_name, begin_time, end_time, backend="sf-databuffer"):
     base_url = shared.DATA_API_BASE_URL + "/events"
     params = {"backend": backend, "channelName": channel_name, "begDate": begin_time, "endDate": end_time}
     return f"{base_url}?{urlencode(params)}"
+"""

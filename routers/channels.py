@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 
 from shared_resources.channel_service import (
     get_curve_data,
-    get_raw_data_link,
     get_recent_channels,
     search_channels,
 )
@@ -107,6 +106,7 @@ def curve_data_route(
         raise HTTPException(status_code=500, detail="Error fetching data from backend") from e
 
 
+"""
 @router.get("/raw-link", description="Returns a link to download raw data directly from data-api")
 @timeout(5)
 def raw_data_link_route(channel_name: str, begin_time: int, end_time: int, backend: str = "sf-databuffer"):
@@ -123,3 +123,4 @@ def raw_data_link_route(channel_name: str, begin_time: int, end_time: int, backe
     except RuntimeError as e:
         logger.error(f"Error in raw_data_link_route: {e}")
         raise HTTPException(status_code=500, detail="Error assembling link") from e
+"""
