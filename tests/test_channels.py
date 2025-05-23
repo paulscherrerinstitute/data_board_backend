@@ -1,6 +1,6 @@
 from mocks.mock_datahub import MOCK_CHANNELS
 
-# from shared_resources.variables import shared_variables as shared
+from shared_resources.variables import shared_variables as shared
 
 
 def test_channels_search_all(client):
@@ -149,6 +149,10 @@ def test_curve_data_binned(client):
         },
     }
     assert response.json() == expected
+
+
+def test_shared():
+    assert shared
 
 
 """
