@@ -22,7 +22,7 @@ class SharedVariables:
 
         self.backend_sync_active = False
 
-        self.DATA_API_BASE_URL = getenv("DAQBUF_DEFAULT_URL", "https://data-api.psi.ch/api/4")
+        # self.DATA_API_BASE_URL = getenv("DAQBUF_DEFAULT_URL", "https://data-api.psi.ch/api/4")
 
 
 shared_variables = SharedVariables()
