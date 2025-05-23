@@ -31,6 +31,11 @@ def test_channels_search_matching_single(client):
 
 
 def test_channels_recent(client):
+    # Make the channel be registered as an available channel
+    response = client.get("/channels/search", params={"search_text": "test-channel-1"})
+    assert response.status_code == 200
+
+    # Make the channel be added to recent channels
     response = client.get(
         "/channels/curve",
         params={"channel_name": "test-channel-1", "begin_time": 1, "end_time": 2},
@@ -40,7 +45,18 @@ def test_channels_recent(client):
     response = client.get("/channels/recent")
     assert response.status_code == 200
     assert "channels" in response.json()
-    assert len(response.json()["channels"]) > 0
+    expected_channel = {
+        "backend": "test-backend",
+        "name": "test-channel-1",
+        "seriesId": "1234",
+        "source": "",
+        "type": "string",
+        "shape": [],
+        "unit": "",
+        "description": "",
+    }
+
+    assert expected_channel in response.json()["channels"]
 
 
 def test_curve_data_raw(client):
@@ -128,3 +144,24 @@ def test_curve_data_binned(client):
         },
     }
     assert response.json() == expected
+
+
+def test_raw_link_success_default_base(client):
+    params = {"channel_name": "test-channel", "begin_time": 10, "end_time": 20}
+    resp = client.get("/channels/raw-link", params=params)
+    assert resp.status_code == 200
+
+    expected = (
+        "https://data-api.psi.ch/api/4/events?backend=sf-databuffer&channelName=test-channel&begDate=10&endDate=20"
+    )
+    assert resp.json() == expected
+
+
+def test_raw_link_success_custom_base(client):
+    client.app.state.shared.DATA_API_BASE_URL = "https://custom-url/api"
+    params = {"channel_name": "foo", "begin_time": 123, "end_time": 456}
+    resp = client.get("/channels/raw-link", params=params)
+    assert resp.status_code == 200
+
+    expected = "https://custom-url/api/events?backend=sf-databuffer&channelName=foo&begDate=123&endDate=456"
+    assert resp.json() == expected

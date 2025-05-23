@@ -51,6 +51,7 @@ coverage.xml
 .pytest_cache/
 cover/
 lcov.info
+.route_calls_gw*.txt
 
 # Translations
 *.mo

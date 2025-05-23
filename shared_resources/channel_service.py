@@ -1,14 +1,15 @@
 import datetime
 import logging
+from urllib.parse import urlencode
 
 from datahub import Daqbuf, Enum, Table, re
 
-from shared_resources.variables import shared_variables as shared
+from shared_resources.variables import SharedState
 
 logger = logging.getLogger("uvicorn")
 
 
-def search_channels(search_text=".*", allow_cached_response=True):
+def search_channels(shared: SharedState, search_text=".*", allow_cached_response=True):
     matching_channels = []
     cache_miss = False
     if allow_cached_response:
@@ -140,7 +141,7 @@ def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw
     return {"curve": curve}
 
 
-def update_recent_channels(channel_entry: dict):
+def update_recent_channels(shared: SharedState, channel_entry: dict):
     if channel_entry:
         with shared.recent_channels_lock:
             if channel_entry in shared.recent_channels:
@@ -151,6 +152,7 @@ def update_recent_channels(channel_entry: dict):
 
 
 def get_curve_data(
+    shared: SharedState,
     channel_name: str,
     begin_time: int,
     end_time: int,
@@ -160,7 +162,7 @@ def get_curve_data(
     removeEmptyBins: bool,
     channel_entry: dict,
 ):
-    update_recent_channels(channel_entry)
+    update_recent_channels(shared, channel_entry)
 
     query = {
         "channels": [channel_name],
@@ -215,5 +217,11 @@ def get_curve_data(
     return curve
 
 
-def get_recent_channels():
+def get_recent_channels(shared: SharedState):
     return shared.recent_channels
+
+
+def get_raw_data_link(shared: SharedState, channel_name, begin_time, end_time, backend="sf-databuffer"):
+    base_url = shared.DATA_API_BASE_URL + "/events"
+    params = {"backend": backend, "channelName": channel_name, "begDate": begin_time, "endDate": end_time}
+    return f"{base_url}?{urlencode(params)}"

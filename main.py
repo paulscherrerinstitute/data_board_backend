@@ -12,28 +12,33 @@ from shared_resources.mongo_service import (
     check_mongo_connected,
     configure_mongo_indices,
 )
+from shared_resources.variables import SharedState
 
 logger = logging.getLogger("uvicorn")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Instantiate shared variables
+    app.state.shared = SharedState()
     # Check mongodb connectivity
-    check_mongo_connected()
+    check_mongo_connected(app.state.shared)
 
     # Make sure we have important indices
-    configure_mongo_indices()
+    configure_mongo_indices(app.state.shared)
 
     # Start the backend synchronizer in a separate thread
-    backend_channel_thread = Thread(target=backend_synchronizer)
+    backend_channel_thread = Thread(target=backend_synchronizer, args=(app.state.shared,))
     backend_channel_thread.daemon = True
     backend_channel_thread.start()
+    app.state._backend_channel_thread = backend_channel_thread
 
     # Execute app
     yield
 
     # Stop backend synchronizer
-    backend_channel_thread.join(0)
+    app.state._backend_channel_thread.join(0)
+    app.state.shared.mongo_client.close()
 
 
 tags_metadata = [

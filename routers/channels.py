@@ -1,16 +1,16 @@
 import logging
 import time
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from shared_resources.channel_service import (
     get_curve_data,
+    get_raw_data_link,
     get_recent_channels,
     search_channels,
 )
 from shared_resources.decorators import timeout
-from shared_resources.variables import shared_variables as shared
 
 logger = logging.getLogger("uvicorn")
 
@@ -19,13 +19,14 @@ router = APIRouter(tags=["channels"])
 
 @router.get("/search", description="Searches the cache for a channel. If not found in cache, archivers will be queried")
 @timeout(15)
-def search_channels_route(search_text: str = "", allow_cached_response=True):
+def search_channels_route(request: Request, search_text: str = "", allow_cached_response=True):
+    shared = request.app.state.shared
     channels = []
     if search_text == "" and allow_cached_response:
         # Return all channels
         channels = list(shared.available_backend_channels)
     else:
-        channels = search_channels(search_text=search_text.strip(), allow_cached_response=allow_cached_response)
+        channels = search_channels(shared, search_text=search_text.strip(), allow_cached_response=allow_cached_response)
 
     # To avoid precision loss in browsers, transmit seriresId as string
     processed_channels = []
@@ -41,8 +42,8 @@ def search_channels_route(search_text: str = "", allow_cached_response=True):
 
 @router.get("/recent", description="Returns channels with recently accessed data")
 @timeout(10)
-def recent_channels_route():
-    channels = get_recent_channels()
+def recent_channels_route(request: Request):
+    channels = get_recent_channels(request.app.state.shared)
     result = {"channels": channels}
     return JSONResponse(content=result, status_code=200)
 
@@ -50,6 +51,7 @@ def recent_channels_route():
 @router.get("/curve", description="Returns channel data for the specified parameters")
 @timeout(30)
 def curve_data_route(
+    request: Request,
     channel_name: str,
     begin_time: int,
     end_time: int,
@@ -58,6 +60,7 @@ def curve_data_route(
     useEventsIfBinCountTooLarge: bool = False,
     removeEmptyBins: bool = False,
 ):
+    shared = request.app.state.shared
     entry = {}
     # If the channel name can be converted to an integer, treat it as seriesId.
     if channel_name.isdigit():
@@ -71,7 +74,7 @@ def curve_data_route(
             None,
         )
     # Don't verify channel if seriesId is used
-    if not channel_name.isdigit() and not search_channels(channel_name.strip()):
+    if not channel_name.isdigit() and not search_channels(shared, channel_name.strip()):
         raise HTTPException(status_code=404, detail="Channel not found in backend")
     if begin_time * end_time == 0:
         raise HTTPException(
@@ -91,6 +94,7 @@ def curve_data_route(
 
     try:
         result = get_curve_data(
+            shared,
             channel_name=channel_name,
             begin_time=begin_time,
             end_time=end_time,
@@ -104,3 +108,26 @@ def curve_data_route(
     except RuntimeError as e:
         logger.error(f"Error in curve_data_route: {e}")
         raise HTTPException(status_code=500, detail="Error fetching data from backend") from e
+
+
+@router.get("/raw-link", description="Returns a link to download raw data directly from data-api")
+@timeout(5)
+def raw_data_link_route(
+    request: Request, channel_name: str, begin_time: int, end_time: int, backend: str = "sf-databuffer"
+):
+    shared = request.app.state.shared
+    if begin_time * end_time == 0:
+        raise HTTPException(
+            status_code=400, detail="begin_time or end_time is invalid, must be valid unix time (seconds)"
+        )
+    if begin_time > end_time:
+        raise HTTPException(status_code=400, detail="begin_time is bigger than end_time, must be smaller or equal")
+
+    try:
+        result = get_raw_data_link(
+            shared, channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend
+        )
+        return JSONResponse(content=result, status_code=200)
+    except RuntimeError as e:
+        logger.error(f"Error in raw_data_link_route: {e}")
+        raise HTTPException(status_code=500, detail="Error assembling link") from e
