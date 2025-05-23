@@ -22,4 +22,4 @@ jobs:
           pip install --upgrade pip
           pip install -r testing_requirements.txt
 
-      - run: pytest -n auto
+      - run: pytest
