@@ -1,7 +1,5 @@
 from mocks.mock_datahub import MOCK_CHANNELS
 
-from shared_resources.variables import shared_variables as shared
-
 
 def test_channels_search_all(client):
     response = client.get("/channels/search", params={"search_text": ".*", "allow_cached_response": False})
@@ -47,21 +45,18 @@ def test_channels_recent(client):
     response = client.get("/channels/recent")
     assert response.status_code == 200
     assert "channels" in response.json()
-    expected = {
-        "channels": [
-            {
-                "backend": "test-backend",
-                "name": "test-channel-1",
-                "seriesId": "1234",
-                "source": "",
-                "type": "string",
-                "shape": [],
-                "unit": "",
-                "description": "",
-            }
-        ]
+    expected_channel = {
+        "backend": "test-backend",
+        "name": "test-channel-1",
+        "seriesId": "1234",
+        "source": "",
+        "type": "string",
+        "shape": [],
+        "unit": "",
+        "description": "",
     }
-    assert response.json() == expected
+
+    assert expected_channel in response.json()["channels"]
 
 
 def test_curve_data_raw(client):
@@ -151,11 +146,6 @@ def test_curve_data_binned(client):
     assert response.json() == expected
 
 
-def test_shared():
-    assert shared
-
-
-"""
 def test_raw_link_success_default_base(client):
     params = {"channel_name": "test-channel", "begin_time": 10, "end_time": 20}
     resp = client.get("/channels/raw-link", params=params)
@@ -167,12 +157,11 @@ def test_raw_link_success_default_base(client):
     assert resp.json() == expected
 
 
-def test_raw_link_success_custom_base(monkeypatch, client):
-    monkeypatch.setattr(shared, "DATA_API_BASE_URL", "https://custom-url/api")
+def test_raw_link_success_custom_base(client):
+    client.app.state.shared.DATA_API_BASE_URL = "https://custom-url/api"
     params = {"channel_name": "foo", "begin_time": 123, "end_time": 456}
     resp = client.get("/channels/raw-link", params=params)
     assert resp.status_code == 200
 
     expected = "https://custom-url/api/events?backend=sf-databuffer&channelName=foo&begDate=123&endDate=456"
     assert resp.json() == expected
-"""

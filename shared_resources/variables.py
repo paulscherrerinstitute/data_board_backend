@@ -4,15 +4,13 @@ from threading import Lock
 from pymongo import MongoClient
 
 
-class SharedVariables:
+class SharedState:
     def __init__(self):
-        mongo_host = getenv("MONGO_HOST", "localhost")
-        mongo_port = int(getenv("MONGO_PORT", 27017))
-        mongo_db_name = getenv("MONGO_DB_NAME", "databoard")
-
-        self.mongo_client = MongoClient(host=mongo_host, port=mongo_port)
-        self.mongo_db = self.mongo_client[mongo_db_name]
-
+        self.mongo_client = MongoClient(
+            host=getenv("MONGO_HOST", "localhost"),
+            port=int(getenv("MONGO_PORT", 27017)),
+        )
+        self.mongo_db = self.mongo_client[getenv("MONGO_DB_NAME", "databoard")]
         self.recent_channels = []
         self.recent_channels_lock = Lock()
 
@@ -22,7 +20,4 @@ class SharedVariables:
 
         self.backend_sync_active = False
 
-        # self.DATA_API_BASE_URL = getenv("DAQBUF_DEFAULT_URL", "https://data-api.psi.ch/api/4")
-
-
-shared_variables = SharedVariables()
+        self.DATA_API_BASE_URL = getenv("DAQBUF_DEFAULT_URL", "https://data-api.psi.ch/api/4")

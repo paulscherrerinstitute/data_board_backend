@@ -1,11 +1,11 @@
 import logging
 
-from shared_resources.variables import shared_variables as shared
+from shared_resources.variables import SharedState
 
 logger = logging.getLogger("uvicorn")
 
 
-def check_mongo_connected():
+def check_mongo_connected(shared: SharedState):
     try:
         shared.mongo_client.admin.command("ping")
     except Exception:
@@ -14,7 +14,7 @@ def check_mongo_connected():
         ) from None
 
 
-def configure_mongo_indices():
+def configure_mongo_indices(shared: SharedState):
     indexes = shared.mongo_db["dashboards"].index_information()
     if not any("last_access" in idx.get("key", [])[0] for idx in indexes.values()):
         shared.mongo_db["dashboards"].create_index([("last_access", 1)])
