@@ -1,8 +1,10 @@
 import importlib.util
 import os
+import re
 import socket
 import sys
 import time
+from pathlib import Path
 
 import pytest
 from fastapi.routing import APIRoute
@@ -10,17 +12,8 @@ from fastapi.testclient import TestClient
 from pymongo import MongoClient
 from testcontainers.core.container import DockerContainer
 
-
-def pytest_collection_modifyitems(items):
-    last_test = None
-    for item in items:
-        if item.nodeid.endswith("::test_all_routes_are_tested"):
-            last_test = item
-            break
-
-    if last_test:
-        items.remove(last_test)
-        items.append(last_test)
+# Global store for all normalized route calls in each worker
+ROUTE_CALLS = set()
 
 
 def get_free_port():
@@ -29,11 +22,17 @@ def get_free_port():
         return s.getsockname()[1]
 
 
-@pytest.fixture(scope="session")
+def normalize_path(path: str) -> str:
+    path = path.split("?", 1)[0]
+    uuid_pattern = re.compile(r"/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+    return uuid_pattern.sub("/{id}", path)
+
+
+@pytest.fixture()
 def mongo_container():
     host_port = get_free_port()
     c = (
-        DockerContainer("mongo:6.0")
+        DockerContainer("mongo:latest")
         .with_exposed_ports(27017)
         .with_bind_ports(27017, host_port)
         .with_command("mongod --bind_ip_all --noauth")
@@ -54,70 +53,80 @@ def mongo_container():
         pytest.skip("MongoDB container did not start in time")
 
     print(f"[mongo-container] Running on {host}:{host_port}")
-
     yield host, host_port
     c.stop()
 
 
-@pytest.fixture(scope="session")
-def route_calls():
-    return set()
-
-
 @pytest.fixture()
-def client(mongo_container, monkeypatch, route_calls):
+def client(mongo_container):
     host, port = mongo_container
+    monkeypatch = pytest.MonkeyPatch()
     monkeypatch.setenv("MONGO_HOST", host)
     monkeypatch.setenv("MONGO_PORT", str(port))
 
+    # Load mock datahub
     mock_path = os.path.abspath("tests/mocks/mock_datahub.py")
     spec = importlib.util.spec_from_file_location("datahub", mock_path)
     mock_datahub = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mock_datahub)
-
     sys.modules["datahub"] = mock_datahub
 
     import main
 
     client = TestClient(main.app)
 
-    # Patch HTTP methods to track route usage
-    original_get = client.get
-    original_post = client.post
-    original_put = client.put
-    original_delete = client.delete
-    original_patch = client.patch
+    # Patch HTTP methods to track normalized route usage
+    for method in ("get", "post", "put", "delete", "patch"):
+        original = getattr(client, method)
 
-    def tracking_get(url, *args, **kwargs):
-        route_calls.add(url)
-        return original_get(url, *args, **kwargs)
+        def make_tracker(orig):
+            def tracker(url, *args, **kwargs):
+                ROUTE_CALLS.add(normalize_path(url))
+                return orig(url, *args, **kwargs)
 
-    def tracking_post(url, *args, **kwargs):
-        route_calls.add(url)
-        return original_post(url, *args, **kwargs)
+            return tracker
 
-    def tracking_put(url, *args, **kwargs):
-        route_calls.add(url)
-        return original_put(url, *args, **kwargs)
-
-    def tracking_delete(url, *args, **kwargs):
-        route_calls.add(url)
-        return original_delete(url, *args, **kwargs)
-
-    def tracking_patch(url, *args, **kwargs):
-        route_calls.add(url)
-        return original_patch(url, *args, **kwargs)
-
-    client.get = tracking_get
-    client.post = tracking_post
-    client.put = tracking_put
-    client.delete = tracking_delete
-    client.patch = tracking_patch
+        setattr(client, method, make_tracker(original))
 
     yield client
+    monkeypatch.undo()
 
 
 def get_all_routes():
     import main
 
-    return {route.path for route in main.app.routes if isinstance(route, APIRoute)}
+    return [route.path for route in main.app.routes if isinstance(route, APIRoute)]
+
+
+def pytest_sessionfinish(session, exitstatus):
+    root = Path(session.config.rootpath)
+    workerinput = getattr(session.config, "workerinput", None)
+    if workerinput:
+        # Running in a worker: write calls to file
+        wid = workerinput.get("workerid", "unknown")
+        file = root / f".route_calls_{wid}.txt"
+        file.write_text("\n".join(sorted(ROUTE_CALLS)))
+
+
+def pytest_unconfigure(config):
+    if getattr(config, "workerinput", None):
+        return
+
+    # Fetch all called routes and delete file dumps afterwards
+    root_dir = Path(config.rootpath)
+    all_calls = set()
+    for temp_file in root_dir.glob(".route_calls_*.txt"):
+        all_calls.update(temp_file.read_text().splitlines())
+        temp_file.unlink()
+
+    defined = set(get_all_routes())
+    missing = sorted(defined - all_calls)
+    if not missing:
+        print("\033[32mAll defined routes were called in the tests!\033[0m\n")
+        return
+
+    print("\n")
+    print("\033[31mROUTE COVERAGE FAILURE\033[0m")
+    print(f"\033[31mRoutes missing tests: {missing}\033[0m")
+    print("> Implement Tests for these routes.\n")
+    sys.exit(1)
