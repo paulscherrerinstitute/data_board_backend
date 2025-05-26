@@ -223,5 +223,14 @@ def get_recent_channels(shared: SharedState):
 
 def get_raw_data_link(shared: SharedState, channel_name, begin_time, end_time, backend="sf-databuffer"):
     base_url = shared.DATA_API_BASE_URL + "/events"
-    params = {"backend": backend, "channelName": channel_name, "begDate": begin_time, "endDate": end_time}
-    return f"{base_url}?{urlencode(params)}"
+    params = {
+        "backend": backend,
+        "channelName": channel_name,
+        "begDate": datetime.datetime.fromtimestamp(begin_time / 1000, datetime.timezone.utc).isoformat(
+            sep=" ", timespec="milliseconds"
+        ),
+        "endDate": datetime.datetime.fromtimestamp(end_time / 1000, datetime.timezone.utc).isoformat(
+            sep=" ", timespec="milliseconds"
+        ),
+    }
+    return {"link": f"{base_url}?{urlencode(params)}"}
