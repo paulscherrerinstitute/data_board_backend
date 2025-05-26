@@ -10,18 +10,19 @@ services:
       - mongo_data_volume:/data/db
 
   backend:
-    image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend}"
+    image: "${BACKEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_backend:latest}"
     restart: unless-stopped
     environment:
       MONGO_HOST: "mongo"
       MONGO_PORT: "27017"
       MONGO_DB_NAME: "${MONGO_DB_NAME:-databoard}"
       SCHEMA_PATH: "${SCHEMA_PATH:-}"
+      ROOT_PATH: "/api"
     networks:
       - data_board_network
 
   frontend:
-    image: "${FRONTEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_frontend}"
+    image: "${FRONTEND_IMAGE:-ghcr.io/paulscherrerinstitute/data_board_frontend:latest}"
     ports:
       - "${FRONTEND_PORT:-80}:80"
     restart: unless-stopped

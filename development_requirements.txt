@@ -1,0 +1,6 @@
+-r testing_requirements.txt
+
+isort
+autoflake
+ruff
+pre-commit
