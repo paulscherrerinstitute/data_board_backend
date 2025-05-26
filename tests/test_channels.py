@@ -151,9 +151,9 @@ def test_raw_link_success_default_base(client):
     resp = client.get("/channels/raw-link", params=params)
     assert resp.status_code == 200
 
-    expected = (
-        "https://data-api.psi.ch/api/4/events?backend=sf-databuffer&channelName=test-channel&begDate=10&endDate=20"
-    )
+    expected = {
+        "link": "https://data-api.psi.ch/api/4/events?backend=sf-databuffer&channelName=test-channel&begDate=1970-01-01+00%3A00%3A00.010%2B00%3A00&endDate=1970-01-01+00%3A00%3A00.020%2B00%3A00"
+    }
     assert resp.json() == expected
 
 
@@ -163,5 +163,7 @@ def test_raw_link_success_custom_base(client):
     resp = client.get("/channels/raw-link", params=params)
     assert resp.status_code == 200
 
-    expected = "https://custom-url/api/events?backend=sf-databuffer&channelName=foo&begDate=123&endDate=456"
+    expected = {
+        "link": "https://custom-url/api/events?backend=sf-databuffer&channelName=foo&begDate=1970-01-01+00%3A00%3A00.123%2B00%3A00&endDate=1970-01-01+00%3A00%3A00.456%2B00%3A00"
+    }
     assert resp.json() == expected
