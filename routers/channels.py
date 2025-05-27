@@ -26,6 +26,10 @@ def search_channels_route(request: Request, search_text: str = "", allow_cached_
         # Return all channels
         channels = list(shared.available_backend_channels)
     else:
+        # Workaround to sf-databuffer not offering a way to correctly cache channels.
+        # With this many characters in the search text, the search should be fairly performant.
+        if len(search_text) > 4:
+            allow_cached_response = False
         channels = search_channels(shared, search_text=search_text.strip(), allow_cached_response=allow_cached_response)
 
     # To avoid precision loss in browsers, transmit seriresId as string
