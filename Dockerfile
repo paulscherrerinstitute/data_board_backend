@@ -6,9 +6,13 @@ RUN addgroup -S databoard && adduser -S -D -H -s /sbin/nologin -G databoard data
 
 RUN apk add --update --no-cache --virtual .tmp pkgconfig hdf5-dev gcc libc-dev linux-headers curl mongodb-tools
 
+RUN curl -L https://astral.sh/uv/install.sh | sh
+
+ENV PATH="/root/.local/bin:${PATH}"
+
 COPY requirements.txt .
-# --progress-bar off is done so it won't spawn a new thread for it, which makes the pipeline break 
-RUN pip install --no-cache-dir --progress-bar off -r requirements.txt
+
+RUN uv pip install -r requirements.txt --system --no-cache
 
 COPY main.py .
 COPY shared_resources/ shared_resources/
