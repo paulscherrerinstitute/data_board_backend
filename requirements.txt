@@ -10,6 +10,6 @@ pytz==2025.2
 pandas==2.2.3
 psutil==7.0.0
 pymongo==4.12.1
-jsonschema==4.23.0
+jsonschema==4.24.0
 orjson==3.10.18
 setuptools==80.9.0
