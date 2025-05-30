@@ -2,7 +2,7 @@ import logging
 import time
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, ORJSONResponse
 
 from shared_resources.channel_service import (
     get_curve_data,
@@ -108,7 +108,7 @@ def curve_data_route(
             removeEmptyBins=removeEmptyBins,
             channel_entry=entry,
         )
-        return JSONResponse(content=result, status_code=200)
+        return ORJSONResponse(content=result, status_code=200)
     except RuntimeError as e:
         logger.error(f"Error in curve_data_route: {e}")
         raise HTTPException(status_code=500, detail="Error fetching data from backend") from e
