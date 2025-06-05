@@ -53,7 +53,7 @@ def recent_channels_route(request: Request):
 
 
 @router.get("/curve", description="Returns channel data for the specified parameters")
-@timeout(30)
+@timeout(60)
 def curve_data_route(
     request: Request,
     channel_name: str,
