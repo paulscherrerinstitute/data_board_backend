@@ -2,6 +2,7 @@ import datetime
 import logging
 from urllib.parse import urlencode
 
+import numpy as np
 from datahub import Daqbuf, Enum, Table, re
 
 from shared_resources.variables import SharedState
@@ -75,7 +76,7 @@ def process_curve_data_entry(
     max_name,
     curve,
 ):
-    timestamp = record["timestamp"]
+    timestamp = str(record["timestamp"])
 
     # skip empty bins if specified
     if remove_empty_bins and not raw:
@@ -98,11 +99,23 @@ def process_curve_data_entry(
     # Metainformation
     count = count_map.get(timestamp)
     if count or raw:
-        meta = curve[f"{channel_name}_meta"].setdefault(timestamp, {})
+        meta = curve[f"{channel_name}_meta"]["pointMeta"].setdefault(timestamp, {})
         if count:
             meta["count"] = int(count[count_name])
         if raw:
             meta["pulseId"] = record.get("pulse_id")
+
+
+def is_waveform_entry(entry, channel_name):
+    return isinstance(entry[channel_name], np.ndarray)
+
+
+def process_curve_data_waveform_entry(record, channel_name, curve):
+    timestamp = str(record["timestamp"])
+    for index, value in enumerate(record[channel_name]):
+        curve[channel_name][f"{timestamp}_{str(index)}"] = float(value)
+    meta = curve[f"{channel_name}_meta"]["pointMeta"].setdefault(timestamp, {})
+    meta["pulseId"] = record.get("pulse_id")
 
 
 def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw=True):
@@ -112,16 +125,42 @@ def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw
 
     # prepare output containers
     curve = {channel_name: {}}
-    curve[f"{channel_name}_meta"] = {"raw": raw}
+    curve[f"{channel_name}_meta"] = {"pointMeta": {}, "raw": raw}
+
+    # Check if waveform and divert if that's the case
+    try:
+        first_entry = daqbuf_data[channel_name][0]
+        is_waveform = is_waveform_entry(first_entry, channel_name)
+    except (KeyError, IndexError):
+        is_waveform = False
+
+    curve[f"{channel_name}_meta"]["waveform"] = is_waveform
+
+    if is_waveform:
+        for record in daqbuf_data.get(channel_name, []):
+            process_curve_data_waveform_entry(
+                record,
+                channel_name,
+                curve,
+            )
+        return {"curve": curve}
+
     if min_name in daqbuf_data:
         curve[f"{channel_name}_min"] = {}
     if max_name in daqbuf_data:
         curve[f"{channel_name}_max"] = {}
 
-    # build timestamp → record maps once
-    count_map = {r["timestamp"]: r for r in daqbuf_data.get(count_name, [])}
-    min_map = {r["timestamp"]: r for r in daqbuf_data.get(min_name, [])} if min_name in daqbuf_data else {}
-    max_map = {r["timestamp"]: r for r in daqbuf_data.get(max_name, [])} if max_name in daqbuf_data else {}
+    # build timestamp => record maps once
+    count_map = {str(r["timestamp"]): r for r in daqbuf_data.get(count_name, [])}
+    min_map = {str(r["timestamp"]): r for r in daqbuf_data.get(min_name, [])} if min_name in daqbuf_data else {}
+    max_map = {str(r["timestamp"]): r for r in daqbuf_data.get(max_name, [])} if max_name in daqbuf_data else {}
+
+    timestamps = np.sort([r["timestamp"] for r in daqbuf_data.get(count_name, [])])
+    intervals = np.diff(timestamps)
+
+    meta = curve.setdefault(f"{channel_name}_meta", {})
+    meta["interval_avg"] = intervals.mean() if len(intervals) > 0 else 0
+    meta["interval_stddev"] = intervals.std() if len(intervals) > 0 else 0
 
     for record in daqbuf_data.get(channel_name, []):
         process_curve_data_entry(
@@ -174,7 +213,8 @@ def get_curve_data(
         ),
     }
 
-    if num_bins > 0:
+    raw = num_bins <= 0
+    if not raw:
         query["bins"] = num_bins
 
     curve = {}
@@ -185,35 +225,35 @@ def get_curve_data(
             source.request(query, background=True)
             source.join()
             source.remove_listeners()
-            source.verbose = True
             daqbuf_data = table.data
 
-            raw = num_bins <= 0
             if daqbuf_data is not None and len(daqbuf_data) > 0:
-                if useEventsIfBinCountTooLarge and channel_name + " count" in daqbuf_data:
-                    actualData = 0
-                    for entry in daqbuf_data[channel_name + " count"]:
-                        try:
-                            actualData += int(entry[channel_name + " count"])
-                        except (KeyError, ValueError, TypeError):
-                            continue
-                    if not actualData == 0 and actualData < num_bins:
-                        raw = True
+                if not raw and useEventsIfBinCountTooLarge and channel_name + " count" in daqbuf_data:
+                    count_key = f"{channel_name} count"
+                    data_count = sum(item.get(count_key, 0) for item in daqbuf_data[count_key])
 
+                    if data_count < num_bins:
                         table.clear()
                         source.add_listener(table)
                         query.pop("bins")
                         source.request(query, background=True)
                         source.join()
                         source.remove_listeners()
-                        daqbuf_data = table.data
+
+                        entries = table.data.get(channel_name, [])
+                        is_waveform = is_waveform_entry(entries[0], channel_name) if entries else False
+                        is_single_waveform = len(entries) == 1 and is_waveform
+
+                        if not is_waveform or is_single_waveform:
+                            raw = True
+                            daqbuf_data = table.data
                 curve = transform_curve_data(daqbuf_data, channel_name, removeEmptyBins, raw)
                 table.clear()
             else:
                 curve[channel_name] = {}
     except Exception as e:
         logger.error(f"Error in get_curve_data: {e}")
-        raise RuntimeError from None
+        raise RuntimeError from e
     return curve
 
 
