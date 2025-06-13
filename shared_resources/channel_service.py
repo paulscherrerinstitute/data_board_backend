@@ -10,7 +10,7 @@ from shared_resources.variables import SharedState
 logger = logging.getLogger("uvicorn")
 
 
-def search_channels(shared: SharedState, search_text=".*", allow_cached_response=True):
+def search_channels(shared: SharedState, search_text=".*", allow_cached_response=True, backend=None):
     matching_channels = []
     cache_miss = False
     if allow_cached_response:
@@ -34,7 +34,7 @@ def search_channels(shared: SharedState, search_text=".*", allow_cached_response
             cache_miss = True
 
     if not matching_channels:
-        with Daqbuf(backend=None, parallel=True) as source:
+        with Daqbuf(backend=backend, parallel=True) as source:
             # Verbose gets us the plain response without any formatting, which would only slow everything down.
             source.verbose = True
             result = source.search(regex=search_text, case_sensitive=False)
