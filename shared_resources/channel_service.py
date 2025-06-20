@@ -250,7 +250,7 @@ def get_curve_data(
                 curve = transform_curve_data(daqbuf_data, channel_name, removeEmptyBins, raw)
                 table.clear()
             else:
-                curve[channel_name] = {}
+                curve["curve"] = {channel_name: {}}
     except Exception as e:
         logger.error(f"Error in get_curve_data: {e}")
         raise RuntimeError from e
