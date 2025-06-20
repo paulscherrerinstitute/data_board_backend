@@ -74,6 +74,13 @@ def test_update_dashboard_protected(client):
     assert resp.status_code == 403
 
 
+def test_update_dashboard_validation_error(client):
+    payload = load_example()
+    dash_id, _ = create_dashboard(client, payload)
+    resp = client.patch(f"/dashboard/{dash_id}", json={})
+    assert resp.status_code == 422
+
+
 def test_delete_dashboard(client):
     payload = load_example()
     dash_id, _ = create_dashboard(client, payload)
