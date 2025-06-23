@@ -19,7 +19,7 @@ router = APIRouter(tags=["channels"])
 
 @router.get("/search", description="Searches the cache for a channel. If not found in cache, archivers will be queried")
 @timeout(15)
-def search_channels_route(request: Request, search_text: str = "", allow_cached_response=True):
+def search_channels_route(request: Request, search_text: str = "", allow_cached_response=True, backend=None):
     shared = request.app.state.shared
     channels = []
     if search_text == "" and allow_cached_response:
@@ -30,7 +30,9 @@ def search_channels_route(request: Request, search_text: str = "", allow_cached_
         # With this many characters in the search text, the search should be fairly performant.
         if len(search_text) > 4:
             allow_cached_response = False
-        channels = search_channels(shared, search_text=search_text.strip(), allow_cached_response=allow_cached_response)
+        channels = search_channels(
+            shared, search_text=search_text.strip(), allow_cached_response=allow_cached_response, backend=backend
+        )
 
     # To avoid precision loss in browsers, transmit seriresId as string
     processed_channels = []

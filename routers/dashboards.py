@@ -85,6 +85,8 @@ def update_dashboard_route(request: Request, id: str, dashboard: Dict[str, Any])
         raise HTTPException(status_code=413, detail=e.message) from e
     except DashboardProtectedError as e:
         raise HTTPException(status_code=403, detail=e.message) from e
+    except DashboardValidationError as e:
+        raise HTTPException(status_code=422, detail=e.message) from e
 
 
 @router.delete("/{id}")
