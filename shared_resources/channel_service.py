@@ -200,6 +200,7 @@ def get_curve_data(
     useEventsIfBinCountTooLarge: bool,
     removeEmptyBins: bool,
     channel_entry: dict,
+    timeout: int = -1,
 ):
     update_recent_channels(shared, channel_entry)
 
@@ -216,6 +217,9 @@ def get_curve_data(
     raw = num_bins <= 0
     if not raw:
         query["bins"] = num_bins
+
+    if timeout > 0:
+        query["timeout"] = timeout
 
     curve = {}
     try:
