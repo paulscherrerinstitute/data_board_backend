@@ -109,6 +109,7 @@ def curve_data_route(
             useEventsIfBinCountTooLarge=useEventsIfBinCountTooLarge,
             removeEmptyBins=removeEmptyBins,
             channel_entry=entry,
+            timeout=50,
         )
         return ORJSONResponse(content=result, status_code=200)
     except RuntimeError as e:
