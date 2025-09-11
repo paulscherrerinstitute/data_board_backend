@@ -9,7 +9,7 @@ python-dateutil==2.9.0.post0
 pytz==2025.2
 pandas==2.3.1
 psutil==7.0.0
-pymongo==4.13.2
+pymongo==4.15.0
 jsonschema==4.25.0
 orjson==3.11.1
 setuptools==80.9.0
