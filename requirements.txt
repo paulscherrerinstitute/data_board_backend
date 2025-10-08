@@ -1,4 +1,4 @@
-fastapi[standard]==0.118.0
+fastapi[standard]==0.118.1
 
 psi-datahub==1.1.4
 numpy==2.3.3
