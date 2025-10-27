@@ -11,5 +11,5 @@ pandas==2.3.3
 psutil==7.1.1
 pymongo==4.15.3
 jsonschema==4.25.1
-orjson==3.11.3
+orjson==3.11.4
 setuptools==80.9.0
