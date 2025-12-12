@@ -108,6 +108,13 @@ By default, both ways of deploying the whole application use the most recent doc
 
 > ⚠️ **Important:** The [docker compose script](docker-compose.yml) uses cached images if available. To prevent it from using outdated images, run `docker compose pull`.
 
+An example of deploying using the `ansible-playbook` command would be:
+```bash
+ ansible-playbook -i se13-test.psi.ch, -u schwar_e docker_pull_and_run.yml -e FRONTEND_IMAGE=ghcr.io/paulscherrerinstitute/data_board_frontend:main --ask-pass
+```
+
+That would deploy to the host `se13-test.psi.ch`, and authenticating with username and password for `schwar_e`. Additionally, this overwrites the image to use for the frontend to be a specific package (from testing pipeline). Similarly you can overwrite many more parameters, for that see the [script](docker_pull_and_run.yml).
+
 ### Notes for Production
 
 #### Maintenance Routes
