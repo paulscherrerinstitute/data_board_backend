@@ -93,10 +93,7 @@ def curve_data_route(
             detail="begin_time is bigger than end_time, must be smaller or equal",
         )
     if end_time > time.time() * 1000:
-        raise HTTPException(
-            status_code=400,
-            detail="end_time is in the future, cannot request data for the future",
-        )
+        end_time = time.time() * 1000
 
     try:
         result = get_curve_data(
