@@ -3,6 +3,8 @@
   become: true
   vars:
     mongo_data_volume: mongo_data
+    bind_mount_src: /etc/ssl/data_board
+    bind_mount_dst: /etc/ssl/data_board
   tasks:
     - name: Set default values if variables are not defined
       set_fact:
@@ -105,5 +107,8 @@
           DATA_BOARD_PUBLIC_BACKEND_URL: "/api"
         ports:
           - "{{ FRONTEND_PORT }}:80"
+          - "443:443"
         networks:
           - name: data_board_network
+        volumes:
+          - "{{ bind_mount_src }}:{{ bind_mount_dst }}"
