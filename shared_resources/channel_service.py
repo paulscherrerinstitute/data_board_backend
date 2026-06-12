@@ -86,7 +86,18 @@ def process_curve_data_entry(
 
     # value
     value = record[channel_name]
-    curve[channel_name][timestamp] = value.id if isinstance(value, Enum) else float(value)
+    description = None
+    if isinstance(value, Enum):
+        curve[channel_name][timestamp] = value.id
+        description = str(value.desc)
+    else:
+        try:
+            curve[channel_name][timestamp] = float(value)
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Could not convert non-enum value to float, only setting description: {e}")
+            # 1 indicates a non-empty string, so something was set. 0 means nothing.
+            curve[channel_name][timestamp] = 1 if str(value) else 0
+            description = str(value)
 
     # min
     if timestamp in min_map:
@@ -98,12 +109,13 @@ def process_curve_data_entry(
 
     # Metainformation
     count = count_map.get(timestamp)
-    if count or raw:
-        meta = curve[f"{channel_name}_meta"]["pointMeta"].setdefault(timestamp, {})
-        if count:
-            meta["count"] = int(count[count_name])
-        if raw:
-            meta["pulseId"] = record.get("pulse_id")
+    meta = curve[f"{channel_name}_meta"]["pointMeta"].setdefault(timestamp, {})
+    if count:
+        meta["count"] = int(count[count_name])
+    if raw:
+        meta["pulseId"] = record.get("pulse_id")
+    if description is not None:
+        meta["desc"] = description
 
 
 def is_waveform_entry(entry, channel_name):
