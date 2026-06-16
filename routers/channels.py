@@ -65,6 +65,7 @@ def curve_data_route(
     num_bins: int = 0,
     useEventsIfBinCountTooLarge: bool = False,
     removeEmptyBins: bool = False,
+    isString: bool | None = None,
 ):
     shared = request.app.state.shared
     entry = {}
@@ -79,6 +80,9 @@ def curve_data_route(
             (item for item in shared.available_backend_channels if item["name"] == channel_name),
             None,
         )
+    if isString is None:
+        isString = entry and entry["type"] == "string"
+
     # Don't verify channel if seriesId is used
     if not channel_name.isdigit() and not search_channels(shared, channel_name.strip()):
         raise HTTPException(status_code=404, detail="Channel not found in backend")
@@ -107,6 +111,7 @@ def curve_data_route(
             removeEmptyBins=removeEmptyBins,
             channel_entry=entry,
             timeout=50,
+            isString=isString,
         )
         return ORJSONResponse(content=result, status_code=200)
     except RuntimeError as e:

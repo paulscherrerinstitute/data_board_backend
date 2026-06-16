@@ -63,6 +63,28 @@ def search_channels(shared: SharedState, search_text=".*", allow_cached_response
     return matching_channels
 
 
+def get_numerical_value_and_description(value, isString) -> tuple[float, str]:
+    numerical_value = 0
+    description = None
+    if isinstance(value, Enum):
+        numerical_value = value.id
+        description = str(value.desc)
+    elif isString:
+        # 1 indicates a non-empty string, so something was set. 0 means nothing.
+        numerical_value = 1 if str(value) else 0
+        description = str(value)
+    else:
+        try:
+            numerical_value = float(value)
+        except (ValueError, TypeError) as e:
+            logger.error(f"Could not convert non-string value to float, only setting description: {e}")
+            # 1 indicates a non-empty string, so something was set. 0 means nothing.
+            numerical_value = 1 if str(value) else 0
+            description = str(value)
+
+    return numerical_value, description
+
+
 def process_curve_data_entry(
     record,
     channel_name,
@@ -75,6 +97,7 @@ def process_curve_data_entry(
     min_name,
     max_name,
     curve,
+    isString,
 ):
     timestamp = str(record["timestamp"])
 
@@ -84,20 +107,8 @@ def process_curve_data_entry(
         if count and int(count[count_name]) == 0:
             return
 
-    # value
-    value = record[channel_name]
-    description = None
-    if isinstance(value, Enum):
-        curve[channel_name][timestamp] = value.id
-        description = str(value.desc)
-    else:
-        try:
-            curve[channel_name][timestamp] = float(value)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Could not convert non-enum value to float, only setting description: {e}")
-            # 1 indicates a non-empty string, so something was set. 0 means nothing.
-            curve[channel_name][timestamp] = 1 if str(value) else 0
-            description = str(value)
+    # value & description
+    curve[channel_name][timestamp], description = get_numerical_value_and_description(record[channel_name], isString)
 
     # min
     if timestamp in min_map:
@@ -130,7 +141,7 @@ def process_curve_data_waveform_entry(record, channel_name, curve):
     meta["pulseId"] = record.get("pulse_id")
 
 
-def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw=True):
+def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw=True, isString=False):
     count_name = f"{channel_name} count"
     min_name = f"{channel_name} min"
     max_name = f"{channel_name} max"
@@ -187,6 +198,7 @@ def transform_curve_data(daqbuf_data, channel_name, remove_empty_bins=False, raw
             min_name,
             max_name,
             curve,
+            isString,
         )
 
     return {"curve": curve}
@@ -213,6 +225,7 @@ def get_curve_data(
     removeEmptyBins: bool,
     channel_entry: dict,
     timeout: int = -1,
+    isString: bool = False,
 ):
     update_recent_channels(shared, channel_entry)
 
@@ -263,7 +276,7 @@ def get_curve_data(
                         if not is_waveform or is_single_waveform:
                             raw = True
                             daqbuf_data = table.data
-                curve = transform_curve_data(daqbuf_data, channel_name, removeEmptyBins, raw)
+                curve = transform_curve_data(daqbuf_data, channel_name, removeEmptyBins, raw, isString)
                 table.clear()
             else:
                 curve["curve"] = {channel_name: {}}
