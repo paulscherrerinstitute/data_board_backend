@@ -175,7 +175,7 @@ For any contribution to be merged, all pipelines need to be successful, and the 
 
 ## Contact / Support
 
-The current maintainer is Erik Schwarz <erik.schwarz{at}psi.ch>
+The current product owner is Andrej Babic, Paul Scherrer Institute.
 
 ---
 
