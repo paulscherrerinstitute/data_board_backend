@@ -1,7 +1,7 @@
 fastapi[standard]==0.137.1
 
 psi-datahub==1.1.13
-numpy==2.4.6
+numpy==2.5.0
 h5py==3.16.0
 requests==2.34.2
 cbor2==6.1.2
