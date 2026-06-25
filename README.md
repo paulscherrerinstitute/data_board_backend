@@ -115,6 +115,8 @@ An example of deploying using the `ansible-playbook` command would be:
 
 That would deploy to the host `se13-test.psi.ch`, and authenticating with username and password for `schwar_e`. Additionally, this overwrites the image to use for the frontend to be a specific package (from testing pipeline). Similarly you can overwrite many more parameters, for that see the [script](docker_pull_and_run.yml).
 
+There is also a [Puppet/Hiera example file](hiera-example.yaml) which can be used by sysadmins for systems where databoard is already running, using e.g. docker-compose. It will automatically create the required SSL directories and files that are referenced in the deployment files, and ensure automatic certificate renewal, including reloading nginx whenever new certificates are available.
+
 ### Notes for Production
 
 #### Maintenance Routes
