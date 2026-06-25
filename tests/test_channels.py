@@ -50,7 +50,7 @@ def test_channels_recent(client):
         "name": "test-channel-1",
         "seriesId": "1234",
         "source": "",
-        "type": "string",
+        "type": "float",
         "shape": [],
         "unit": "",
         "description": "",

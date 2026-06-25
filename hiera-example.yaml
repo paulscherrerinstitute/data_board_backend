@@ -1,0 +1,62 @@
+# Example Puppet/Hiera config to set up databoard running on a managed server in docker containers (e.g using the Docker-Compose File)
+
+# fix if substitution %{::fqdn} fails
+acme::fqdn: 'databoard-00.psi.ch'
+
+# Install certbot and nginx packages
+base::pkg_group::extra:
+  - "certbot"
+
+base::package_groups:
+  - "extra"
+
+files::files:
+# Post hook to reload services after certificate renewal
+  /etc/letsencrypt/renewal-hooks/post/nginx.sh:
+    mode: "0544"
+    content: |
+      #!/bin/bash
+      docker exec data_board_frontend nginx -s reload
+  
+# Inital setup of certbot
+  /usr/local/libexec/certbot-initial:
+    mode: "0500"
+    content: |
+      #!/bin/bash
+  
+# initial certificate order and setup on the first run only
+      [ -f /etc/letsencrypt/live/%{lookup('acme::fqdn')}/fullchain.pem ] && exit 0
+      /usr/bin/certbot certonly --standalone \
+          --server https://one.digicert.com/mpki/api/v1/acme/v2/directory \
+          --non-interactive --agree-tos --register-unsafely-without-email \
+          --cert-name %{lookup('acme::fqdn')} --new-key \
+          --eab-kid %{lookup('acme::eab-kid')} \
+          --eab-hmac-key %{lookup('acme::eab-hmac-key')} \
+          --domain %{lookup('acme::fqdn')} \
+          --domain databoard.psi.ch \
+      && /etc/letsencrypt/renewal-hooks/post/nginx.sh
+
+# Service which sets up certbot
+base::services:
+  'certbot-initial':
+    enable: true
+    options:
+      Unit:
+        After: 'network-online.target'
+        Wants: 'network-online.target'
+      Install:
+        WantedBy: 'multi-user.target'
+        RequiredBy: 'multi-user.target'
+      Service:
+        Type: 'oneshot'
+        ExecStart: '/usr/local/libexec/certbot-initial'
+        RemainAfterExit: 'true'
+
+# Enable certbot renewal timer
+base::timers:
+  certbot-renew:
+    enable: true
+
+ssh_server::aliases:
+  - 'databoard.psi.ch'
+  - 'databoard'

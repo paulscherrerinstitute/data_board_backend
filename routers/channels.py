@@ -2,7 +2,6 @@ import logging
 import time
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse, ORJSONResponse
 
 from shared_resources.channel_service import (
     get_curve_data,
@@ -43,7 +42,7 @@ def search_channels_route(request: Request, search_text: str = "", allow_cached_
         processed_channels.append(channel_copy)
     result = {"channels": processed_channels}
 
-    return JSONResponse(content=result, status_code=200)
+    return result
 
 
 @router.get("/recent", description="Returns channels with recently accessed data")
@@ -51,7 +50,8 @@ def search_channels_route(request: Request, search_text: str = "", allow_cached_
 def recent_channels_route(request: Request):
     channels = get_recent_channels(request.app.state.shared)
     result = {"channels": channels}
-    return JSONResponse(content=result, status_code=200)
+
+    return result
 
 
 @router.get("/curve", description="Returns channel data for the specified parameters")
@@ -65,6 +65,7 @@ def curve_data_route(
     num_bins: int = 0,
     useEventsIfBinCountTooLarge: bool = False,
     removeEmptyBins: bool = False,
+    isString: bool | None = None,
 ):
     shared = request.app.state.shared
     entry = {}
@@ -79,6 +80,9 @@ def curve_data_route(
             (item for item in shared.available_backend_channels if item["name"] == channel_name),
             None,
         )
+    if isString is None:
+        isString = entry and entry["type"] == "string"
+
     # Don't verify channel if seriesId is used
     if not channel_name.isdigit() and not search_channels(shared, channel_name.strip()):
         raise HTTPException(status_code=404, detail="Channel not found in backend")
@@ -107,8 +111,10 @@ def curve_data_route(
             removeEmptyBins=removeEmptyBins,
             channel_entry=entry,
             timeout=50,
+            isString=isString,
         )
-        return ORJSONResponse(content=result, status_code=200)
+
+        return result
     except RuntimeError as e:
         logger.error(f"Error in curve_data_route: {e}")
         raise HTTPException(status_code=500, detail="Error fetching data from backend") from e
@@ -131,7 +137,8 @@ def raw_data_link_route(
         result = get_raw_data_link(
             shared, channel_name=channel_name, begin_time=begin_time, end_time=end_time, backend=backend
         )
-        return JSONResponse(content=result, status_code=200)
+
+        return result
     except RuntimeError as e:
         logger.error(f"Error in raw_data_link_route: {e}")
         raise HTTPException(status_code=500, detail="Error assembling link") from e
