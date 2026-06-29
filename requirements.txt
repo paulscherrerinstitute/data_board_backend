@@ -7,7 +7,7 @@ requests==2.34.2
 cbor2==6.1.2
 python-dateutil==2.9.0.post0
 pytz==2026.2
-pandas==3.0.3
+pandas==3.0.4
 psutil==7.2.2
 pymongo==4.17.0
 jsonschema==4.26.0
