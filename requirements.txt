@@ -4,7 +4,7 @@ psi-datahub==1.1.13
 numpy==2.4.6
 h5py==3.16.0
 requests==2.34.2
-cbor2==6.1.2
+cbor2==6.1.3
 python-dateutil==2.9.0.post0
 pytz==2026.2
 pandas==3.0.3
